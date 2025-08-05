@@ -1,75 +1,74 @@
 import { Stripe, loadStripe } from '@stripe/stripe-js';
 import StripeServer from 'stripe';
 
-// Environment variable validation
-const validateEnvironmentVariables = () => {
-  const requiredEnvVars = [
-    { key: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', value: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY },
-    { key: 'STRIPE_SECRET_KEY', value: process.env.STRIPE_SECRET_KEY }
-  ];
+// Environment detection
+const isServer = typeof window === 'undefined';
 
-  const missingVars = requiredEnvVars.filter(envVar => !envVar.value);
+// Client-side validation (browser only)
+const validateClientEnvironment = () => {
+  if (isServer) return; // Skip validation on server
 
-  if (missingVars.length > 0) {
-    const missingKeys = missingVars.map(envVar => envVar.key).join(', ');
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+  if (!publishableKey) {
     throw new Error(
-      `Missing required Stripe environment variables: ${missingKeys}. ` +
-      'Please check your .env.local file and ensure all Stripe keys are properly configured.'
+      'Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. ' +
+      'Please check your .env.local file and ensure the Stripe publishable key is properly configured.'
     );
   }
 
-  // Validate key formats
-  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!;
-  const secretKey = process.env.STRIPE_SECRET_KEY!;
-
   if (!publishableKey.startsWith('pk_')) {
     throw new Error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must start with "pk_"');
+  }
+
+  // Check if using test keys in production (client-side)
+  if (process.env.NODE_ENV === 'production' && publishableKey.includes('test')) {
+    console.warn(
+      '⚠️  WARNING: You are using Stripe test publishable key in production environment. ' +
+      'Please ensure you are using live keys for production.'
+    );
+  }
+};
+
+// Server-side validation (server only)
+const validateServerEnvironment = () => {
+  if (!isServer) return; // Skip validation on client
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error(
+      'Missing STRIPE_SECRET_KEY. ' +
+      'Please check your .env.local file and ensure the Stripe secret key is properly configured.'
+    );
   }
 
   if (!secretKey.startsWith('sk_')) {
     throw new Error('STRIPE_SECRET_KEY must start with "sk_"');
   }
 
-  // Check if we're using test keys in production
-  if (process.env.NODE_ENV === 'production') {
-    if (publishableKey.includes('test') || secretKey.includes('test')) {
-      console.warn(
-        '⚠️  WARNING: You are using Stripe test keys in production environment. ' +
-        'Please ensure you are using live keys for production.'
-      );
-    }
+  // Check if using test keys in production (server-side)
+  if (process.env.NODE_ENV === 'production' && secretKey.includes('test')) {
+    console.warn(
+      '⚠️  WARNING: You are using Stripe test secret key in production environment. ' +
+      'Please ensure you are using live keys for production.'
+    );
   }
-};
-
-// Validate environment variables on module load
-validateEnvironmentVariables();
-
-// Server-side Stripe instance
-let stripeServerInstance: StripeServer | null = null;
-
-export const getStripeServer = (): StripeServer => {
-  if (!stripeServerInstance) {
-    try {
-      stripeServerInstance = new StripeServer(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2025-07-30.basil', // Use the latest stable API version
-        typescript: true,
-        telemetry: false, // Disable telemetry in production
-      });
-    } catch (error) {
-      throw new Error(
-        `Failed to initialize Stripe server instance: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-  return stripeServerInstance;
 };
 
 // Client-side Stripe instance (singleton pattern)
 let stripeClientPromise: Promise<Stripe | null> | null = null;
 
 export const getStripeClient = (): Promise<Stripe | null> => {
+  if (isServer) {
+    throw new Error('getStripeClient() should only be called on the client side');
+  }
+
   if (!stripeClientPromise) {
     try {
+      // Validate environment before creating client
+      validateClientEnvironment();
+
       stripeClientPromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, {
         // Optional: Configure Stripe.js options
         stripeAccount: undefined, // Set if using Stripe Connect
@@ -84,8 +83,50 @@ export const getStripeClient = (): Promise<Stripe | null> => {
   return stripeClientPromise;
 };
 
-// Export the server instance directly for convenience
-export const stripe = getStripeServer();
+// Server-side Stripe instance (singleton pattern)
+let stripeServerInstance: StripeServer | null = null;
+
+export const getStripeServer = (): StripeServer => {
+  if (!isServer) {
+    throw new Error('getStripeServer() should only be called on the server side');
+  }
+
+  if (!stripeServerInstance) {
+    try {
+      // Validate environment before creating server instance
+      validateServerEnvironment();
+
+      stripeServerInstance = new StripeServer(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: '2025-07-30.basil', // Use the latest stable API version
+        typescript: true,
+        telemetry: false, // Disable telemetry in production
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to initialize Stripe server instance: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+  return stripeServerInstance;
+};
+
+// Conditional stripe instance that works on both client and server
+export const stripe = (() => {
+  if (isServer) {
+    return getStripeServer();
+  }
+  // For client-side, we return a function that returns the promise
+  // This avoids calling getStripeClient() during module initialization
+  return null;
+})();
+
+// For client-side usage, provide a separate export
+export const getStripe = () => {
+  if (isServer) {
+    return getStripeServer();
+  }
+  return getStripeClient();
+};
 
 // Export loadStripe function for client-side usage
 export { loadStripe };

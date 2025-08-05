@@ -94,10 +94,10 @@ export const PRICING_TIERS: PricingTier[] = [
         included: false,
       },
     ],
-    // Stripe IDs will be added when products are created in Stripe
+    // Stripe IDs - Actual Price IDs from Stripe dashboard
     stripePriceId: {
-      monthly: 'price_basic_monthly', // Replace with actual Stripe price ID
-      yearly: 'price_basic_yearly',
+      monthly: 'price_1RsbiV3knPyAFyt5jhMDdEUI', // Basic monthly price
+      // yearly: 'price_basic_yearly', // Yearly pricing not yet configured
     },
     stripeProductId: 'prod_basic', // Replace with actual Stripe product ID
   },
@@ -167,8 +167,8 @@ export const PRICING_TIERS: PricingTier[] = [
       },
     ],
     stripePriceId: {
-      monthly: 'price_professional_monthly', // Replace with actual Stripe price ID
-      yearly: 'price_professional_yearly',
+      monthly: 'price_1Rsbj73knPyAFyt5qcAlh8Lw', // Professional monthly price
+      // yearly: 'price_professional_yearly', // Yearly pricing not yet configured
     },
     stripeProductId: 'prod_professional', // Replace with actual Stripe product ID
   },
@@ -247,8 +247,8 @@ export const PRICING_TIERS: PricingTier[] = [
       },
     ],
     stripePriceId: {
-      monthly: 'price_enterprise_monthly', // Replace with actual Stripe price ID
-      yearly: 'price_enterprise_yearly',
+      monthly: 'price_1RsbjW3knPyAFyt5uFXrBBw1', // Enterprise monthly price
+      // yearly: 'price_enterprise_yearly', // Yearly pricing not yet configured
     },
     stripeProductId: 'prod_enterprise', // Replace with actual Stripe product ID
   },

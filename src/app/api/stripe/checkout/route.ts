@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe/config';
-import { handleStripeError } from '@/lib/stripe/config';
+import { getStripeServer, handleStripeError } from '@/lib/stripe/config';
 import type { Stripe } from 'stripe';
 
 // TypeScript interface for request body
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing`,
       billing_address_collection: 'required',
       tax_id_collection: {
@@ -74,12 +73,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     } else if (body.customerEmail) {
       // Create or use existing customer with this email
       sessionParams.customer_email = body.customerEmail;
-    } else {
-      // Collect customer information during checkout
-      sessionParams.customer_creation = 'always';
     }
+    // Note: For subscription mode, customer creation is automatic - no need to set customer_creation
 
     // Create the checkout session
+    const stripe = getStripeServer();
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Validate that we got a URL back

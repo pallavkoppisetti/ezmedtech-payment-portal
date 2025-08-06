@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import Navigation from '@/components/shared/Navigation';
 import PricingTable from '@/components/billing/PricingTable';
 import { type PricingTier } from '@/lib/stripe/products';
 import { redirectToCheckout } from '@/lib/stripe/checkout';
@@ -62,8 +61,6 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Navigation */}
-      <Navigation />
       
       {/* Hero Section */}
       <div className="relative overflow-hidden">

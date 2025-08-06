@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Shield, Zap, Users, Activity, Heart, CheckCircle, Star } from "lucide-react";
-import Navigation from "@/components/shared/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navigation />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32">

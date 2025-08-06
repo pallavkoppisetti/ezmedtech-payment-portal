@@ -2,14 +2,12 @@
 
 import React from 'react';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
-import Navigation from '@/components/shared/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">

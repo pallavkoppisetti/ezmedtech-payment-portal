@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import Navigation from "@/components/shared/Navigation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +29,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Navigation />
+        <main className="min-h-screen bg-gray-50">
+          {children}
+        </main>
         <Toaster 
           position="top-right"
           toastOptions={{

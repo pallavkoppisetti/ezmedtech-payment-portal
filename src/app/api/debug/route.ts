@@ -17,4 +17,4 @@ export async function GET() {
       all_stripe_vars: Object.keys(process.env).filter(key => key.includes('STRIPE'))
     }
   });
-}
+}// Force rebuild for environment variables

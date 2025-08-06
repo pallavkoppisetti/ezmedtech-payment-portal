@@ -4,7 +4,7 @@ frontend:
     preBuild:
       commands:
         - npm install -g pnpm@8
-        - pnpm install --frozen-lockfile
+        - pnpm install
     build:
       commands:
         - pnpm run build

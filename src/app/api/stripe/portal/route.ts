@@ -24,7 +24,7 @@ type PortalResponse = PortalSuccessResponse | PortalErrorResponse;
 
 export async function POST(request: NextRequest): Promise<NextResponse<PortalResponse>> {
   try {
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
     
     // Parse request body
     let body: PortalRequest;

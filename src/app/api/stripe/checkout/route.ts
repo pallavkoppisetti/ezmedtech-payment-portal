@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     // Note: For subscription mode, customer creation is automatic - no need to set customer_creation
 
     // Create the checkout session
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Validate that we got a URL back

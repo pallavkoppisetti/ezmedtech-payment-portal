@@ -3,7 +3,7 @@ import { getStripeServer } from '@/lib/stripe/config';
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
     
     // Test Stripe connection by listing the first few products
     const products = await stripe.products.list({ limit: 3 });

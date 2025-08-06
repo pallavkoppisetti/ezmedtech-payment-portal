@@ -52,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
       );
     }
 
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {

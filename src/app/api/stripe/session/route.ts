@@ -79,7 +79,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<SessionRes
       );
     }
 
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
 
     // Retrieve the checkout session with expanded data
     const session = await stripe.checkout.sessions.retrieve(sessionId, {

@@ -1,5 +1,7 @@
 import { Stripe, loadStripe } from '@stripe/stripe-js';
 import StripeServer from 'stripe';
+import { getStripeSecretKey } from '@/lib/aws/secrets';
+
 
 // Environment detection
 const isServer = typeof window === 'undefined';
@@ -86,23 +88,23 @@ export const getStripeClient = (): Promise<Stripe | null> => {
   return stripeClientPromise;
 };
 
-// Server-side Stripe instance (singleton pattern)
+// Server-side Stripe instance 
 let stripeServerInstance: StripeServer | null = null;
 
-export const getStripeServer = (): StripeServer => {
+export const getStripeServer = async (): Promise<StripeServer> => {
   if (!isServer) {
     throw new Error('getStripeServer() should only be called on the server side');
   }
 
   if (!stripeServerInstance) {
     try {
-      // Validate environment before creating server instance
-      validateServerEnvironment();
-
-      stripeServerInstance = new StripeServer(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2025-07-30.basil', // Use the latest stable API version
+      // Get secret key from Parameter Store in production, env var in development
+      const secretKey = await getStripeSecretKey();
+      
+      stripeServerInstance = new StripeServer(secretKey, {
+        apiVersion: '2025-07-30.basil',
         typescript: true,
-        telemetry: false, // Disable telemetry in production
+        telemetry: false,
       });
     } catch (error) {
       throw new Error(

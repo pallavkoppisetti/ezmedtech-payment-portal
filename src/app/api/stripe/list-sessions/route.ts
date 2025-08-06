@@ -3,7 +3,7 @@ import { getStripeServer } from '@/lib/stripe/config';
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const stripe = getStripeServer();
+    const stripe = await getStripeServer();
     
     // List recent checkout sessions to see what exists
     const sessions = await stripe.checkout.sessions.list({ 

@@ -1,33 +1,12 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - echo "No backend build required"
 frontend:
   phases:
     preBuild:
       commands:
-        - echo "Installing dependencies for EZMedTech Payment Portal..."
         - npm ci
-        - echo "Verifying Node.js environment..."
-        - node --version
-        - npm --version
-        - echo "Verifying environment variables..."
-        - test -n "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" || (echo "ERROR: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set" && exit 1)
-        - test -n "$STRIPE_SECRET_KEY" || (echo "ERROR: STRIPE_SECRET_KEY is not set" && exit 1)
-        - test -n "$NEXT_PUBLIC_APP_URL" || (echo "ERROR: NEXT_PUBLIC_APP_URL is not set" && exit 1)
-        - test -n "$NEXTAUTH_SECRET" || (echo "ERROR: NEXTAUTH_SECRET is not set" && exit 1)
-        - echo "All required environment variables verified successfully"
     build:
       commands:
-        - echo "Building Next.js application..."
-        - echo "Branch: $AWS_BRANCH"
-        - echo "Environment: $NODE_ENV"
         - npm run build
-        - echo "Build completed successfully"
-        - echo "Verifying build output..."
-        - ls -la .next/
   artifacts:
     baseDirectory: .next
     files:
@@ -35,5 +14,3 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
-      - .next/cache/**/*
-      - ~/.npm/**/*

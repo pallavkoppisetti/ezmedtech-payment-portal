@@ -49,10 +49,13 @@ const validateServerEnvironment = () => {
 
   // Check if using test keys in production (server-side)
   if (process.env.NODE_ENV === 'production' && secretKey.includes('test')) {
-    console.warn(
-      '⚠️  WARNING: You are using Stripe test secret key in production environment. ' +
-      'Please ensure you are using live keys for production.'
-    );
+    // Only warn once during startup, not during build
+    if (process.env.NODE_ENV !== 'production' || !process.env.BUILDING) {
+      console.warn(
+        '⚠️  WARNING: You are using Stripe test secret key in production environment. ' +
+        'Please ensure you are using live keys for production.'
+      );
+    }
   }
 };
 

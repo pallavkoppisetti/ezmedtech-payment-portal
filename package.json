@@ -6,7 +6,19 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "build:staging": "NODE_ENV=staging next build",
+    "build:production": "NODE_ENV=production next build",
+    "build:analyze": "ANALYZE=true next build",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "test": "echo 'No tests yet' && exit 0",
+    "clean": "rm -rf .next",
+    "deps:check": "npm outdated",
+    "deps:update": "npm update",
+    "preview": "next build && next start",
+    "export": "next build && next export"
   },
   "dependencies": {
     "@stripe/stripe-js": "^7.8.0",

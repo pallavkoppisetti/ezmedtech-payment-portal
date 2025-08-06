@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Clock, ArrowRight, Home, AlertCircle, Loader2, CreditCard, Calendar } from 'lucide-react';
 import Link from 'next/link';
@@ -28,7 +28,8 @@ interface VerifySessionResponse {
   details?: string;
 }
 
-export default function SuccessPage() {
+// Component that uses search params
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   
@@ -347,5 +348,37 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function SuccessPageLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="bg-blue-100 rounded-full p-4">
+              <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Loading...
+          </h1>
+          <p className="text-lg text-gray-600">
+            Please wait while we load your subscription details.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessPageLoading />}>
+      <SuccessPageContent />
+    </Suspense>
   );
 }

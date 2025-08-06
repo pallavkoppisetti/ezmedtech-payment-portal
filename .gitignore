@@ -30,8 +30,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
 
 # vercel
 .vercel
@@ -39,3 +37,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Environment files (exclude actual secrets)
+.env.local
+.env.staging
+.env.production
+
+# But include templates for reference
+!.env.example
+!.env.template

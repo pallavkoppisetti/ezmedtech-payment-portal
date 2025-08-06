@@ -3,31 +3,31 @@ backend:
   phases:
     build:
       commands:
-        - echo "No backend build required for this frontend-focused application"
+        - echo "No backend build required"
 frontend:
   phases:
     preBuild:
       commands:
         - echo "Installing dependencies for EZMedTech Payment Portal..."
         - npm ci
+        - echo "Verifying Node.js environment..."
+        - node --version
+        - npm --version
         - echo "Verifying environment variables..."
-        - |
-          if [ -z "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" ]; then
-            echo "❌ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set"
-            exit 1
-          fi
-        - |
-          if [ -z "$STRIPE_SECRET_KEY" ]; then
-            echo "❌ STRIPE_SECRET_KEY is not set"
-            exit 1
-          fi
-        - echo "✅ Required environment variables verified"
+        - test -n "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" || (echo "ERROR: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set" && exit 1)
+        - test -n "$STRIPE_SECRET_KEY" || (echo "ERROR: STRIPE_SECRET_KEY is not set" && exit 1)
+        - test -n "$NEXT_PUBLIC_APP_URL" || (echo "ERROR: NEXT_PUBLIC_APP_URL is not set" && exit 1)
+        - test -n "$NEXTAUTH_SECRET" || (echo "ERROR: NEXTAUTH_SECRET is not set" && exit 1)
+        - echo "All required environment variables verified successfully"
     build:
       commands:
         - echo "Building Next.js application..."
-        - echo "Environment: $AWS_BRANCH"
+        - echo "Branch: $AWS_BRANCH"
+        - echo "Environment: $NODE_ENV"
         - npm run build
         - echo "Build completed successfully"
+        - echo "Verifying build output..."
+        - ls -la .next/
   artifacts:
     baseDirectory: .next
     files:
@@ -37,28 +37,3 @@ frontend:
       - node_modules/**/*
       - .next/cache/**/*
       - ~/.npm/**/*
-  customHeaders:
-    - pattern: '**/*'
-      headers:
-        - key: 'Strict-Transport-Security'
-          value: 'max-age=63072000; includeSubDomains; preload'
-        - key: 'X-Frame-Options'
-          value: 'DENY'
-        - key: 'X-Content-Type-Options'
-          value: 'nosniff'
-        - key: 'Referrer-Policy'
-          value: 'strict-origin-when-cross-origin'
-        - key: 'X-XSS-Protection'
-          value: '1; mode=block'
-    - pattern: '/api/**'
-      headers:
-        - key: 'Cache-Control'
-          value: 'no-cache, no-store, must-revalidate'
-        - key: 'Pragma'
-          value: 'no-cache'
-        - key: 'Expires'
-          value: '0'
-    - pattern: '/_next/static/**'
-      headers:
-        - key: 'Cache-Control'
-          value: 'public, max-age=31536000, immutable'

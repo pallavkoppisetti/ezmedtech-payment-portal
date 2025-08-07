@@ -197,10 +197,26 @@ const nextConfig: NextConfig = {
   
   // Environment variables validation
   env: {
+    // Explicitly pass critical environment variables to runtime
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     AMPLIFY_ENV: process.env.AMPLIFY_ENV,
     AWS_REGION: process.env.AWS_REGION,
     CUSTOM_KEY: process.env.CUSTOM_KEY,
+    // Also ensure Next.js public vars are available
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  },
+
+  // Additional runtime configuration for serverless functions
+  serverRuntimeConfig: {
+    // Server-side only environment variables
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    AWS_REGION: process.env.AWS_REGION,
+  },
+
+  publicRuntimeConfig: {
+    // Client-side accessible environment variables
+    AMPLIFY_ENV: process.env.AMPLIFY_ENV,
   },
 };
 

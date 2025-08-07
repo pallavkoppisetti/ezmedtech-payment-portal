@@ -16,6 +16,11 @@ export async function GET(): Promise<NextResponse> {
       COMPUTED_ENVIRONMENT: process.env.AMPLIFY_ENV || 'staging',
       // Show the full parameter path being constructed
       PARAMETER_PATH: `/amplify/ezmedtech-payment-portal/${process.env.AMPLIFY_ENV || 'staging'}/STRIPE_SECRET_KEY`,
+      // Show all environment variables that start with STRIPE_ or AMPLIFY_
+      ALL_STRIPE_VARS: Object.keys(process.env).filter(key => key.startsWith('STRIPE_')),
+      ALL_AMPLIFY_VARS: Object.keys(process.env).filter(key => key.startsWith('AMPLIFY_')),
+      // Check specific Next.js vars
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_EXISTS: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     };
     
     console.log('Environment Info:', envInfo);
@@ -43,6 +48,32 @@ export async function GET(): Promise<NextResponse> {
         } : null,
       };
     }
+
+    // Try direct Parameter Store call with exact path
+    let directParameterResult;
+    try {
+      const { SSMClient, GetParameterCommand } = await import('@aws-sdk/client-ssm');
+      const client = new SSMClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const command = new GetParameterCommand({
+        Name: '/amplify/ezmedtech-payment-portal/staging/STRIPE_SECRET_KEY',
+        WithDecryption: true,
+      });
+      const response = await client.send(command);
+      const value = response.Parameter?.Value;
+      
+      directParameterResult = {
+        success: true,
+        found: !!value,
+        length: value?.length || 0,
+        starts_with_sk: value?.startsWith('sk_') || false,
+      };
+    } catch (error) {
+      directParameterResult = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error?.constructor?.name || 'Unknown',
+      };
+    }
     
     // Try the full getStripeSecretKey function
     let stripeKeyResult;
@@ -65,6 +96,7 @@ export async function GET(): Promise<NextResponse> {
       timestamp: new Date().toISOString(),
       environment: envInfo,
       parameterTest: parameterResult,
+      directParameterTest: directParameterResult,
       stripeKeyTest: stripeKeyResult,
     });
     

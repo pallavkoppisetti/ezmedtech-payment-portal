@@ -1,102 +1,83 @@
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-import { logEnvironmentInfo } from '@/lib/environment';
 
 // Cache for parameters to avoid repeated AWS calls
 const parameterCache = new Map<string, string>();
 
-// Log environment info once when module is first loaded
-let environmentLogged = false;
-
 /**
- * Get the current environment (staging/production)
+ * Get the current environment from Amplify's environment variable
  */
 function getEnvironment(): string {
-  // In Amplify, AMPLIFY_ENV is set automatically
+  // This is one of the few env vars Amplify reliably provides.
+  // Default to 'staging' for safety.
   return process.env.AMPLIFY_ENV || 'staging';
 }
 
 /**
- * Fetch a parameter from AWS Parameter Store
+ * Fetches a parameter securely from AWS SSM Parameter Store.
+ * This is the single source of truth for secrets.
  */
 export async function getParameter(parameterName: string): Promise<string | null> {
-  // Log environment info once for debugging
-  if (!environmentLogged) {
-    logEnvironmentInfo();
-    environmentLogged = true;
+  // 1. Check cache first to avoid redundant API calls
+  const cachedValue = parameterCache.get(parameterName);
+  if (cachedValue) {
+    console.log(`[Cache] ✅ Found ${parameterName} in cache.`);
+    return cachedValue;
   }
-  // Check cache first
-  const cached = parameterCache.get(parameterName);
-  if (cached) return cached;
+  console.log(`[Cache] ❌ ${parameterName} not in cache. Fetching from Parameter Store...`);
 
-  // Strategy 1: Try environment variable first (fastest)
-  const envValue = process.env[parameterName];
-  if (envValue) {
-    console.log(`[Environment] ✅ Found ${parameterName} in environment variables`);
-    parameterCache.set(parameterName, envValue);
-    return envValue;
-  }
+  // 2. Determine the full parameter path from the environment
+  const environment = getEnvironment();
+  // IMPORTANT: This path must exactly match the path in Parameter Store
+  const fullParameterName = `/amplify/ezmedtech-payment-portal/${environment}/${parameterName}`;
 
-  console.log(`[Environment] ❌ ${parameterName} not found in environment variables`);
-
-  // Strategy 2: Try Parameter Store (for production environments with proper IAM)
   try {
-    const isLocalDevelopment = !process.env.AMPLIFY_ENV && process.env.NODE_ENV === 'development';
-    
-    if (isLocalDevelopment) {
-      console.log(`[Local Dev] No environment variable found for ${parameterName}`);
-      return null;
-    }
-
-    // In Amplify environments, try Parameter Store
-    console.log(`[Parameter Store] Attempting to fetch ${parameterName} from Parameter Store`);
-    const client = new SSMClient({ 
+    // 3. Initialize the SSM client.
+    // In the Amplify Lambda environment, credentials will be automatically
+    // provided by the IAM role.
+    const client = new SSMClient({
       region: process.env.AWS_REGION || 'us-east-1',
-      // Use default credential chain (works in Lambda environment)
-      credentials: undefined
     });
-    
-    // Build the full parameter path
-    const environment = getEnvironment();
-    const fullParameterName = `/amplify/ezmedtech-payment-portal/${environment}/${parameterName}`;
-    
-    console.log(`[Parameter Store] Attempting to fetch: ${fullParameterName}`);
-    console.log(`[Environment Info] AMPLIFY_ENV: ${process.env.AMPLIFY_ENV}, NODE_ENV: ${process.env.NODE_ENV}, AWS_REGION: ${process.env.AWS_REGION}`);
-    
+
+    // 4. Create and send the command to fetch the parameter
     const command = new GetParameterCommand({
       Name: fullParameterName,
-      WithDecryption: true,
+      WithDecryption: true, // Required for SecureString parameters
     });
-    
+
+    console.log(`[Parameter Store] Fetching secret: ${fullParameterName}`);
     const response = await client.send(command);
-    const value = response.Parameter?.Value || null;
-    
-    console.log(`[Parameter Store] Successfully fetched ${parameterName}: ${value ? '✓ Found' : '✗ Not found'}`);
-    
-    // Cache the value
+    const value = response.Parameter?.Value;
+
     if (value) {
+      console.log(`[Parameter Store] ✅ Successfully fetched ${parameterName}.`);
+      // 5. Cache the fetched value for subsequent calls
       parameterCache.set(parameterName, value);
+      return value;
+    } else {
+      console.error(`[Parameter Store] ❌ Fetched parameter ${parameterName}, but it has no value.`);
+      return null;
     }
-    
-    return value;
   } catch (error) {
-    console.error(`[Parameter Store Error] Failed to fetch parameter ${parameterName}:`, error);
-    console.log(`[Final Result] ${parameterName} not found in either Parameter Store or environment variables`);
+    console.error(`[Parameter Store] ❌ Failed to fetch parameter: ${fullParameterName}`, error);
+    // This error often indicates an IAM permission issue or an incorrect parameter path.
+    // Check the IAM role attached to the Amplify App and the parameter path in AWS Console.
     return null;
   }
 }
 
 /**
- * Get Stripe secret key from Parameter Store or environment
+ * A specific function to get the Stripe secret key.
+ * This is the primary function that should be used by the application.
  */
 export async function getStripeSecretKey(): Promise<string> {
-  console.log('[getStripeSecretKey] Starting to fetch Stripe secret key...');
+  console.log('[Stripe] Attempting to retrieve Stripe Secret Key...');
   const key = await getParameter('STRIPE_SECRET_KEY');
-  
+
   if (!key) {
-    console.error('[getStripeSecretKey] ❌ STRIPE_SECRET_KEY not found in Parameter Store or environment');
-    throw new Error('STRIPE_SECRET_KEY not found in Parameter Store or environment');
+    console.error('[Stripe] ❌ CRITICAL: STRIPE_SECRET_KEY could not be retrieved from Parameter Store.');
+    throw new Error('STRIPE_SECRET_KEY not found. Check Parameter Store and IAM permissions.');
   }
-  
-  console.log('[getStripeSecretKey] ✅ Successfully retrieved Stripe secret key');
+
+  console.log('[Stripe] ✅ Successfully retrieved Stripe Secret Key.');
   return key;
 }

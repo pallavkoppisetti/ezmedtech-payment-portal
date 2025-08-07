@@ -5,28 +5,8 @@ frontend:
       commands:
         - npm install -g pnpm@8
         - pnpm install
-        # Verify environment variables are available during build
-        - echo "Build environment check:"
-        - echo "NODE_ENV=$NODE_ENV"
-        - echo "AMPLIFY_ENV=$AMPLIFY_ENV"
-        - echo "AWS_REGION=$AWS_REGION"
-        - echo "STRIPE_SECRET_KEY exists:" $(test -n "$STRIPE_SECRET_KEY" && echo "YES" || echo "NO")
-        - echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY exists:" $(test -n "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" && echo "YES" || echo "NO")
     build:
       commands:
-        # Validate critical environment variables before build
-        - |
-          if [ -z "$STRIPE_SECRET_KEY" ]; then
-            echo "❌ ERROR: STRIPE_SECRET_KEY environment variable is not set!"
-            echo "Please set this in the Amplify Console under App Settings > Environment Variables"
-            exit 1
-          fi
-        - |
-          if [ -z "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" ]; then
-            echo "❌ ERROR: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY environment variable is not set!"
-            exit 1
-          fi
-        - echo "✅ All required environment variables are present"
         - pnpm run build
   artifacts:
     baseDirectory: .next

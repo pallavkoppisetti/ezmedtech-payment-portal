@@ -19,19 +19,27 @@ export async function getParameter(parameterName: string): Promise<string | null
   const cached = parameterCache.get(parameterName);
   if (cached) return cached;
 
+  // Always try environment variable first (this should work in Amplify)
+  const envValue = process.env[parameterName];
+  if (envValue) {
+    console.log(`[Environment] ✅ Found ${parameterName} in environment variables`);
+    parameterCache.set(parameterName, envValue);
+    return envValue;
+  }
+
+  console.log(`[Environment] ❌ ${parameterName} not found in environment variables`);
+
   try {
-    // Use Parameter Store in Amplify environments (staging/production)
-    // Only use local env vars in true local development
+    // Only try Parameter Store if we have AWS credentials
     const isLocalDevelopment = !process.env.AMPLIFY_ENV && process.env.NODE_ENV === 'development';
     
     if (isLocalDevelopment) {
-      // In local development, use local env vars
-      console.log(`[Local Dev] Fetching ${parameterName} from environment variable`);
-      return process.env[parameterName] || null;
+      console.log(`[Local Dev] No environment variable found for ${parameterName}`);
+      return null;
     }
 
-    // In Amplify environments (staging/production), use Parameter Store
-    console.log(`[Amplify] Fetching ${parameterName} from Parameter Store`);
+    // In Amplify environments, try Parameter Store as fallback
+    console.log(`[Amplify] Trying Parameter Store for ${parameterName}`);
     const client = new SSMClient({ region: process.env.AWS_REGION || 'us-east-1' });
     
     // Build the full parameter path
@@ -59,17 +67,8 @@ export async function getParameter(parameterName: string): Promise<string | null
     return value;
   } catch (error) {
     console.error(`[Parameter Store Error] Failed to fetch parameter ${parameterName}:`, error);
-    console.log(`[Fallback] Trying environment variable: ${parameterName}`);
-    
-    // Fall back to environment variable if Parameter Store fails
-    const envValue = process.env[parameterName];
-    if (envValue) {
-      console.log(`[Fallback] ✅ Found ${parameterName} in environment variables`);
-    } else {
-      console.log(`[Fallback] ❌ ${parameterName} not found in environment variables either`);
-    }
-    
-    return envValue || null;
+    console.log(`[Final Result] ${parameterName} not found in either Parameter Store or environment variables`);
+    return null;
   }
 }
 

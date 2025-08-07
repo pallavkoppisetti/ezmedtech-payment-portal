@@ -21,6 +21,9 @@ export async function GET(): Promise<NextResponse> {
       ALL_AMPLIFY_VARS: Object.keys(process.env).filter(key => key.startsWith('AMPLIFY_')),
       // Check specific Next.js vars
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_EXISTS: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      // Show first few characters of all env vars to debug what's actually loaded
+      ENV_VAR_SAMPLE: Object.keys(process.env).slice(0, 10),
+      TOTAL_ENV_VARS: Object.keys(process.env).length,
     };
     
     console.log('Environment Info:', envInfo);

@@ -5,6 +5,12 @@ frontend:
       commands:
         - npm install -g pnpm@8
         - pnpm install
+        # Verify environment variables are available during build
+        - echo "Build environment check:"
+        - echo "NODE_ENV=$NODE_ENV"
+        - echo "AMPLIFY_ENV=$AMPLIFY_ENV"
+        - echo "AWS_REGION=$AWS_REGION"
+        - echo "STRIPE_SECRET_KEY exists:" $(test -n "$STRIPE_SECRET_KEY" && echo "YES" || echo "NO")
     build:
       commands:
         - pnpm run build

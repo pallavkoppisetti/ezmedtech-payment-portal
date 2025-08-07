@@ -38,28 +38,86 @@ Ensure your repository has the required files:
    - Verify the build configuration is loaded correctly
    - The file includes environment validation and caching
 
-### **3. Environment Variables Setup**
+### **3. Environment Variables & Secret Management**
 
-In the Amplify Console, go to **App settings** > **Environment variables** and add:
+In the Amplify Console, go to **App settings** > **Environment variables** and add the following variables. The Stripe secret key is managed separately and securely via AWS SSM Parameter Store and an IAM role.
 
-#### **Required Environment Variables**
+#### **A. Configure Environment Variables in Amplify**
 ```bash
-# Stripe Configuration
+# The public key for Stripe.js on the client-side
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
-STRIPE_SECRET_KEY=sk_live_your_secret_key
 
-# App Configuration
+# The name of the SSM Parameter Store parameter holding the secret key
+STRIPE_SECRET_KEY_PARAM_NAME=/amplify/d2n13ux3l85z6g/main/STRIPE_SECRET_KEY
+
+# The public URL of your application
 NEXT_PUBLIC_APP_URL=https://your-app-name.amplifyapp.com
 ```
 
-#### **Optional Environment Variables**
-```bash
-# For webhook handling (future)
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+#### **B. Store the Stripe Secret Key in AWS SSM Parameter Store**
 
-# For enhanced security
-NODE_ENV=production
-```
+1.  Navigate to the **AWS Systems Manager** console.
+2.  In the left navigation pane, click **Parameter Store**.
+3.  Click **Create parameter**.
+4.  **Name**: Enter the exact name you used for `STRIPE_SECRET_KEY_PARAM_NAME` (e.g., `/amplify/d2n13ux3l85z6g/main/STRIPE_SECRET_KEY`).
+5.  **Type**: Select `SecureString`. AWS will encrypt the parameter using the default KMS key.
+6.  **Value**: Paste your live Stripe secret key (`sk_live_...`).
+7.  Click **Create parameter**.
+
+#### **C. Create and Assign an IAM Compute Role for SSM Access**
+
+For your Amplify application to securely access the secret at runtime, you must grant it permissions via a dedicated IAM Compute Role.
+
+1.  **Create an IAM Policy**:
+    *   Navigate to the **IAM** console > **Policies** > **Create policy**.
+    *   Switch to the **JSON** editor and paste the following policy. Replace the placeholder with your AWS Account ID, Region, and the exact parameter name.
+
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "ssm:GetParameters",
+                "Resource": "arn:aws:ssm:<REGION>:<ACCOUNT_ID>:parameter/<PARAMETER_NAME>"
+            }
+        ]
+    }
+    ```
+    *   **Example Resource**: `arn:aws:ssm:us-east-1:123456789012:parameter/amplify/d2n13ux3l85z6g/main/STRIPE_SECRET_KEY`
+    *   Name the policy something descriptive, like `AmplifyComputeSSM-StripeKey-Access`.
+
+2.  **Create the IAM Compute Role**:
+    *   Navigate to **IAM** > **Roles** > **Create role**.
+    *   For **Trusted entity type**, select **Custom trust policy**.
+    *   Paste the following trust policy, which allows Amplify to assume this role.
+
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "amplify.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    ```
+    *   Click **Next**.
+    *   Attach the `AmplifyComputeSSM-StripeKey-Access` policy you created in the previous step.
+    *   Name the role `Amplify-Compute-Role-For-Stripe-SSM` and create it.
+
+3.  **Assign the Role to Your Amplify App**:
+    *   In the **Amplify Console**, navigate to your app > **App settings** > **General**.
+    *   Click **Edit**.
+    *   Under **App details**, find the **Compute role** dropdown.
+    *   Select the `Amplify-Compute-Role-For-Stripe-SSM` role you just created.
+    *   Click **Save**.
+
+Your application is now configured to securely fetch the Stripe secret key from SSM Parameter Store during runtime.
 
 ### **4. Domain Configuration**
 

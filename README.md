@@ -68,23 +68,38 @@ cp .env.example .env.local
 ```
 
 4. **Configure Environment Variables**
+
+Create a `.env.local` file by copying the example:
+```bash
+cp .env.example .env.local
+```
+
+Update `.env.local` with your Stripe **publishable key** and the name of the AWS SSM parameter where your secret key is stored.
+
 ```bash
 # Stripe Configuration (Required)
+# The secret key is securely fetched from AWS SSM Parameter Store
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
-STRIPE_SECRET_KEY=sk_test_your_key_here
+STRIPE_SECRET_KEY_PARAM_NAME=/amplify/d2n13ux3l85z6g/main/STRIPE_SECRET_KEY
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-5. **Start Development Server**
+5. **Secret Management with AWS SSM**
+
+For local development, the Stripe secret key is fetched from AWS SSM Parameter Store. Ensure your local AWS environment is configured with credentials that have permission to read the specified parameter. The application uses the AWS SDK, which will automatically pick up credentials from your environment (e.g., from `~/.aws/credentials` or environment variables).
+
+For production, you must configure an IAM role for your Amplify application with permissions to access the SSM parameter. See the [Deployment Guide](./DEPLOYMENT.md) for detailed instructions.
+
+6. **Start Development Server**
 ```bash
 pnpm dev
 # or
 npm run dev
 ```
 
-6. **Open in Browser**
+7. **Open in Browser**
 Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## 🧪 **Testing the Application**

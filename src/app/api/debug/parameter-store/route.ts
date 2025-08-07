@@ -1,19 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getParameter, getStripeSecretKey } from '@/lib/aws/secrets';
-import { getEnvironmentInfo, validateRequiredEnvironmentVariables } from '@/lib/environment';
 
 export async function GET(): Promise<NextResponse> {
   try {
     console.log('=== Parameter Store Debug ===');
-    
-    // Get environment information
-    const envInfo = getEnvironmentInfo();
-    const validation = validateRequiredEnvironmentVariables();
-    
+
+    const amplifyEnv = process.env.AMPLIFY_ENV || 'staging';
+
     // Check environment variables with more detail
     const environmentDetails = {
-      ...envInfo,
-      validation,
+      amplifyEnv,
       // Show all environment variables that start with key prefixes
       ALL_STRIPE_VARS: Object.keys(process.env).filter(key => key.startsWith('STRIPE_')),
       ALL_AMPLIFY_VARS: Object.keys(process.env).filter(key => key.startsWith('AMPLIFY_')),
@@ -23,11 +19,11 @@ export async function GET(): Promise<NextResponse> {
       ENV_VAR_SAMPLE: Object.keys(process.env).slice(0, 10),
       TOTAL_ENV_VARS: Object.keys(process.env).length,
       // Parameter Store path being used
-      PARAMETER_PATH: `/amplify/ezmedtech-payment-portal/${envInfo.amplifyEnv || 'staging'}/STRIPE_SECRET_KEY`,
+      PARAMETER_PATH: `/amplify/ezmedtech-payment-portal/${amplifyEnv}/STRIPE_SECRET_KEY`,
     };
-    
-    console.log('Environment Info:', envInfo);
-    
+
+    console.log('Environment Info:', environmentDetails);
+
     // Try to fetch the parameter directly
     let parameterResult;
     try {

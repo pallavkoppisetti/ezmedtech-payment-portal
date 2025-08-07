@@ -1,29 +1,29 @@
 import { NextResponse } from 'next/server';
 import { getParameter, getStripeSecretKey } from '@/lib/aws/secrets';
+import { getEnvironmentInfo, validateRequiredEnvironmentVariables } from '@/lib/environment';
 
 export async function GET(): Promise<NextResponse> {
   try {
     console.log('=== Parameter Store Debug ===');
     
-    // Check environment variables
-    const envInfo = {
-      NODE_ENV: process.env.NODE_ENV,
-      AMPLIFY_ENV: process.env.AMPLIFY_ENV,
-      AWS_REGION: process.env.AWS_REGION,
-      STRIPE_SECRET_KEY_EXISTS: !!process.env.STRIPE_SECRET_KEY,
-      STRIPE_SECRET_KEY_LENGTH: process.env.STRIPE_SECRET_KEY?.length || 0,
-      // Show what environment getEnvironment() returns
-      COMPUTED_ENVIRONMENT: process.env.AMPLIFY_ENV || 'staging',
-      // Show the full parameter path being constructed
-      PARAMETER_PATH: `/amplify/ezmedtech-payment-portal/${process.env.AMPLIFY_ENV || 'staging'}/STRIPE_SECRET_KEY`,
-      // Show all environment variables that start with STRIPE_ or AMPLIFY_
+    // Get environment information
+    const envInfo = getEnvironmentInfo();
+    const validation = validateRequiredEnvironmentVariables();
+    
+    // Check environment variables with more detail
+    const environmentDetails = {
+      ...envInfo,
+      validation,
+      // Show all environment variables that start with key prefixes
       ALL_STRIPE_VARS: Object.keys(process.env).filter(key => key.startsWith('STRIPE_')),
       ALL_AMPLIFY_VARS: Object.keys(process.env).filter(key => key.startsWith('AMPLIFY_')),
-      // Check specific Next.js vars
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_EXISTS: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      ALL_AWS_VARS: Object.keys(process.env).filter(key => key.startsWith('AWS_')),
+      ALL_NEXT_VARS: Object.keys(process.env).filter(key => key.startsWith('NEXT_')),
       // Show first few characters of all env vars to debug what's actually loaded
       ENV_VAR_SAMPLE: Object.keys(process.env).slice(0, 10),
       TOTAL_ENV_VARS: Object.keys(process.env).length,
+      // Parameter Store path being used
+      PARAMETER_PATH: `/amplify/ezmedtech-payment-portal/${envInfo.amplifyEnv || 'staging'}/STRIPE_SECRET_KEY`,
     };
     
     console.log('Environment Info:', envInfo);
@@ -97,7 +97,7 @@ export async function GET(): Promise<NextResponse> {
     
     return NextResponse.json({
       timestamp: new Date().toISOString(),
-      environment: envInfo,
+      environment: environmentDetails,
       parameterTest: parameterResult,
       directParameterTest: directParameterResult,
       stripeKeyTest: stripeKeyResult,

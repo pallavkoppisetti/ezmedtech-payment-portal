@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // Remove optimizeCss as it requires deprecated critters package
     optimizePackageImports: ['lucide-react', '@stripe/stripe-js'],
+    // Ensure AWS SDK works properly in serverless environment
+    serverComponentsExternalPackages: ['@aws-sdk/client-ssm'],
   },
 
   // Image optimization for healthcare content
@@ -195,6 +197,9 @@ const nextConfig: NextConfig = {
   
   // Environment variables validation
   env: {
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    AMPLIFY_ENV: process.env.AMPLIFY_ENV,
+    AWS_REGION: process.env.AWS_REGION,
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 };

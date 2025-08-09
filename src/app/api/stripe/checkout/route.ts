@@ -25,6 +25,8 @@ interface CheckoutRequestBody {
   customerEmail?: string;
   /** Payment method preference: 'card' | 'ach' | 'both' (default: 'both') */
   payment_method_type?: 'card' | 'ach' | 'both';
+  /** Billing cycle preference: 'monthly' | 'yearly' (default: 'monthly') */
+  billingCycle?: 'monthly' | 'yearly';
   /** Additional metadata to attach to the session and subscription */
   metadata?: Record<string, string>;
 }
@@ -56,7 +58,7 @@ export async function POST(
     }
 
     // Determine billing cycle from request (default to monthly)
-    const billingCycle = (body as any).billingCycle || 'monthly';
+    const billingCycle = body.billingCycle || 'monthly';
 
     // Map tier ID to Stripe price ID if needed
     let actualPriceId = body.priceId;
@@ -122,13 +124,6 @@ export async function POST(
     };
 
     const paymentMethodTypes = getPaymentMethodTypes(paymentMethodType);
-
-    // HIPAA-compliant ACH mandate text for healthcare subscription billing
-    const ACH_MANDATE_TEXT = `By providing your bank account information and confirming this payment, you authorize EZMedTech and Stripe, our payment service provider, to debit your bank account for subscription payments in accordance with their terms. You may cancel this authorization at any time by contacting us or your bank. This authorization will remain in effect until you cancel it. ACH transactions may take 3-5 business days to process.
-
-For healthcare subscription billing, you agree to allow automated charges for your selected subscription plan. You will receive email notifications before each billing cycle. You may update your payment method or cancel your subscription at any time through your account dashboard.
-
-This payment method will be securely stored and used for recurring subscription payments in compliance with healthcare data protection regulations including HIPAA.`;
 
     // Create base checkout session configuration
     const sessionParams: Stripe.Checkout.SessionCreateParams = {

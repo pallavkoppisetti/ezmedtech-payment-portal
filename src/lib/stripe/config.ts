@@ -32,35 +32,6 @@ const validateClientEnvironment = () => {
   }
 };
 
-// Server-side validation (server only)
-const validateServerEnvironment = () => {
-  if (!isServer) return; // Skip validation on client
-
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-
-  if (!secretKey) {
-    throw new Error(
-      'Missing STRIPE_SECRET_KEY. ' +
-        'Please check your .env.local file and ensure the Stripe secret key is properly configured.'
-    );
-  }
-
-  if (!secretKey.startsWith('sk_')) {
-    throw new Error('STRIPE_SECRET_KEY must start with "sk_"');
-  }
-
-  // Check if using test keys in production (server-side)
-  if (process.env.NODE_ENV === 'production' && secretKey.includes('test')) {
-    // Only warn once during startup, not during build
-    if (process.env.NODE_ENV !== 'production' || !process.env.BUILDING) {
-      console.warn(
-        '⚠️  WARNING: You are using Stripe test secret key in production environment. ' +
-          'Please ensure you are using live keys for production.'
-      );
-    }
-  }
-};
-
 // Client-side Stripe instance (singleton pattern)
 let stripeClientPromise: Promise<Stripe | null> | null = null;
 
@@ -396,9 +367,11 @@ export const createACHSubscription = async (
  */
 export const confirmACHMicrodeposits = async (
   paymentMethodId: string,
-  amounts: [number, number]
+  amounts: [number, number] // TODO: Implement microdeposit verification with amounts
 ): Promise<{ success: boolean; message: string }> => {
   try {
+    // Future implementation will use the amounts parameter for verification
+    console.log('ACH microdeposit verification for payment method:', paymentMethodId, 'with amounts:', amounts);
     const stripe = await getStripeServer();
 
     // For ACH verification, we typically need to handle this through

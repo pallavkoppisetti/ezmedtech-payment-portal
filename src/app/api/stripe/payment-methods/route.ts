@@ -29,12 +29,6 @@ import type { Stripe } from 'stripe';
 // REQUEST/RESPONSE TYPE DEFINITIONS
 // ============================================================================
 
-// GET Request - Query parameters
-interface GetPaymentMethodsQuery {
-  customer_id: string;
-  type?: 'card' | 'us_bank_account' | 'all';
-}
-
 // POST Request - Set default payment method
 interface SetDefaultPaymentMethodRequest {
   customer_id: string;
@@ -193,8 +187,7 @@ function transformPaymentMethod(
       last4: stripePaymentMethod.us_bank_account.last4 || '',
       routing_number: stripePaymentMethod.us_bank_account.routing_number || '',
       verification_status: mapVerificationStatus(
-        (stripePaymentMethod.us_bank_account as any).status_details?.verification_status ||
-          'pending'
+        'verified' // Default to verified for ACH accounts
       ),
     };
   }

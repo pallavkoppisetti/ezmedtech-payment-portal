@@ -155,7 +155,7 @@ export default function DashboardPage() {
   }, []);
 
   // Handle ACH setup success
-  const handleACHSetupSuccess = (paymentMethodId: string, setupIntentId: string) => {
+  const handleACHSetupSuccess = () => {
     toast.success(
       'Bank account added successfully! Verification will be completed within 1-2 business days.'
     );

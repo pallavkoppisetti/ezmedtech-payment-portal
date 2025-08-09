@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStripeClient } from '@/lib/stripe/config';
 import { cn } from '@/lib/utils';
-import type { Stripe, StripeElements } from '@stripe/stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
 import { AlertCircle, Check, Clock, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // TypeScript interfaces
@@ -35,7 +35,6 @@ const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, cl
   const [loading, setLoading] = useState(false);
   const [setupIntentData, setSetupIntentData] = useState<SetupIntentData | null>(null);
   const [stripe, setStripe] = useState<Stripe | null>(null);
-  const [elements, setElements] = useState<StripeElements | null>(null);
   const [mandateAccepted, setMandateAccepted] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<ACHVerificationStatus | null>(null);
   const [bankDetails, setBankDetails] = useState({
@@ -63,7 +62,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, cl
   }, []);
 
   // Create SetupIntent for ACH
-  const createSetupIntent = async () => {
+  const createSetupIntent = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -93,10 +92,9 @@ const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, cl
 
         // Initialize Stripe Elements for bank account collection
         if (stripe) {
-          const elementsInstance = stripe.elements({
+          stripe.elements({
             clientSecret: result.client_secret,
           });
-          setElements(elementsInstance);
         }
 
         toast.success('Ready to set up bank account');
@@ -109,7 +107,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, cl
     } finally {
       setLoading(false);
     }
-  };
+  }, [customerId, stripe]);
 
   // Process ACH setup
   const processACHSetup = async () => {
@@ -205,7 +203,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, cl
     if (stripe && !setupIntentData) {
       createSetupIntent();
     }
-  }, [stripe]);
+  }, [stripe, setupIntentData, createSetupIntent]);
 
   // Handle form validation
   const isFormValid =

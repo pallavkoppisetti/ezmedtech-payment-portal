@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getStripeServer, handleStripeError } from '@/lib/stripe/config';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 
 // TypeScript interfaces for response data
@@ -8,7 +8,12 @@ interface VerifyACHResponse {
   paymentMethod?: {
     id: string;
     type: 'us_bank_account';
-    verificationStatus: 'verified' | 'verification_failed' | 'requires_action' | 'processing' | 'pending';
+    verificationStatus:
+      | 'verified'
+      | 'verification_failed'
+      | 'requires_action'
+      | 'processing'
+      | 'pending';
     bankAccount: {
       last4: string;
       bankName?: string;
@@ -29,7 +34,9 @@ interface ErrorResponse {
   details?: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHResponse | ErrorResponse>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<VerifyACHResponse | ErrorResponse>> {
   try {
     // Get setup_intent_id from query parameters
     const { searchParams } = new URL(request.url);
@@ -119,8 +126,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHR
     }
 
     // Determine verification status
-    let verificationStatus: 'verified' | 'verification_failed' | 'requires_action' | 'processing' | 'pending' = 'verified';
-    
+    let verificationStatus:
+      | 'verified'
+      | 'verification_failed'
+      | 'requires_action'
+      | 'processing'
+      | 'pending' = 'verified';
+
     // Since the SetupIntent succeeded, we can assume the payment method is verified
     // In a real implementation, you might check additional Stripe properties
     if (setupIntent.status === 'succeeded') {
@@ -158,7 +170,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHR
         purpose: 'ach_healthcare_subscription',
         source: 'stripe_setup_intent',
         verified_at: new Date().toISOString(),
-      }
+      },
     });
 
     return NextResponse.json(
@@ -183,20 +195,23 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHR
       },
       { status: 200 }
     );
-
   } catch (error) {
     console.error('ACH verification failed:', error);
 
     // Handle specific Stripe errors
     if (error && typeof error === 'object' && 'type' in error) {
       const stripeError = error as Stripe.StripeRawError;
-      
-      if (stripeError.type === 'invalid_request_error' && stripeError.message?.includes('No such setup_intent')) {
+
+      if (
+        stripeError.type === 'invalid_request_error' &&
+        stripeError.message?.includes('No such setup_intent')
+      ) {
         return NextResponse.json(
           {
             success: false,
             error: 'SetupIntent not found or expired',
-            details: 'This SetupIntent either doesn\'t exist, has expired, or belongs to a different Stripe account. Please try creating a new SetupIntent.',
+            details:
+              "This SetupIntent either doesn't exist, has expired, or belongs to a different Stripe account. Please try creating a new SetupIntent.",
           },
           { status: 404 }
         );
@@ -205,7 +220,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHR
 
     // Handle Stripe-specific errors
     const errorMessage = handleStripeError(error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -220,9 +235,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifyACHR
 // Handle unsupported HTTP methods
 export async function POST(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify an ACH payment method.' 
+      error: 'Method not allowed. Use GET to verify an ACH payment method.',
     },
     { status: 405 }
   );
@@ -230,9 +245,9 @@ export async function POST(): Promise<NextResponse<ErrorResponse>> {
 
 export async function PUT(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify an ACH payment method.' 
+      error: 'Method not allowed. Use GET to verify an ACH payment method.',
     },
     { status: 405 }
   );
@@ -240,9 +255,9 @@ export async function PUT(): Promise<NextResponse<ErrorResponse>> {
 
 export async function DELETE(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify an ACH payment method.' 
+      error: 'Method not allowed. Use GET to verify an ACH payment method.',
     },
     { status: 405 }
   );
@@ -250,9 +265,9 @@ export async function DELETE(): Promise<NextResponse<ErrorResponse>> {
 
 export async function PATCH(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify an ACH payment method.' 
+      error: 'Method not allowed. Use GET to verify an ACH payment method.',
     },
     { status: 405 }
   );

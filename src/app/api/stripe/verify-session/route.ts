@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getStripeServer, handleStripeError } from '@/lib/stripe/config';
 import { getPricingTierByStripePriceId } from '@/lib/stripe/products';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 
 // TypeScript interfaces for response data
@@ -17,6 +17,11 @@ interface VerifySessionResponse {
     customerEmail: string;
     customerName?: string;
   };
+  paymentMethod?: {
+    id: string;
+    type: string;
+    object: string;
+  } | null;
 }
 
 interface ErrorResponse {
@@ -25,7 +30,9 @@ interface ErrorResponse {
   details?: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<VerifySessionResponse | ErrorResponse>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<VerifySessionResponse | ErrorResponse>> {
   try {
     // Get session_id from query parameters
     const { searchParams } = new URL(request.url);
@@ -56,7 +63,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'customer'],
+      expand: [
+        'subscription',
+        'customer',
+        'payment_method_options',
+        'payment_intent.payment_method',
+      ],
     });
 
     // Verify the session was completed
@@ -87,7 +99,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
       id: subscription.id,
       status: subscription.status,
       itemsCount: subscription.items.data.length,
-      current_period_end: (subscription as Stripe.Subscription & { current_period_end?: number }).current_period_end
+      current_period_end: (subscription as Stripe.Subscription & { current_period_end?: number })
+        .current_period_end,
     });
 
     // Get the price details
@@ -117,7 +130,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
     // Calculate next billing date
     const subscriptionData = subscription as Stripe.Subscription & { current_period_end?: number };
     let nextBillingDate: string;
-    
+
     if (subscriptionData.current_period_end && subscriptionData.current_period_end > 0) {
       nextBillingDate = new Date(subscriptionData.current_period_end * 1000).toISOString();
     } else {
@@ -131,6 +144,24 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
     const amount = price.unit_amount || 0;
     const currency = price.currency;
     const interval = price.recurring?.interval || 'month';
+
+    // Extract payment method information
+    let paymentMethod = null;
+    if (
+      session.payment_intent &&
+      typeof session.payment_intent === 'object' &&
+      session.payment_intent.payment_method
+    ) {
+      const pm = session.payment_intent.payment_method;
+      // Ensure payment method is an object, not just a string ID
+      if (typeof pm === 'object' && pm !== null) {
+        paymentMethod = {
+          id: pm.id,
+          type: pm.type,
+          object: pm.object,
+        };
+      }
+    }
 
     return NextResponse.json(
       {
@@ -146,23 +177,27 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
           customerEmail,
           customerName,
         },
+        paymentMethod,
       },
       { status: 200 }
     );
-
   } catch (error) {
     console.error('Session verification failed:', error);
 
     // Handle specific Stripe errors
     if (error && typeof error === 'object' && 'type' in error) {
       const stripeError = error as Stripe.StripeRawError;
-      
-      if (stripeError.type === 'invalid_request_error' && stripeError.message?.includes('No such checkout.session')) {
+
+      if (
+        stripeError.type === 'invalid_request_error' &&
+        stripeError.message?.includes('No such checkout.session')
+      ) {
         return NextResponse.json(
           {
             success: false,
             error: 'Session not found or expired',
-            details: 'This checkout session either doesn\'t exist, has expired (sessions expire after 24 hours), or belongs to a different Stripe account. Please try creating a new checkout session.',
+            details:
+              "This checkout session either doesn't exist, has expired (sessions expire after 24 hours), or belongs to a different Stripe account. Please try creating a new checkout session.",
           },
           { status: 404 }
         );
@@ -171,7 +206,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
 
     // Handle Stripe-specific errors
     const errorMessage = handleStripeError(error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -186,9 +221,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<VerifySess
 // Handle unsupported HTTP methods
 export async function POST(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify a session.' 
+      error: 'Method not allowed. Use GET to verify a session.',
     },
     { status: 405 }
   );
@@ -196,9 +231,9 @@ export async function POST(): Promise<NextResponse<ErrorResponse>> {
 
 export async function PUT(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify a session.' 
+      error: 'Method not allowed. Use GET to verify a session.',
     },
     { status: 405 }
   );
@@ -206,9 +241,9 @@ export async function PUT(): Promise<NextResponse<ErrorResponse>> {
 
 export async function DELETE(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify a session.' 
+      error: 'Method not allowed. Use GET to verify a session.',
     },
     { status: 405 }
   );
@@ -216,9 +251,9 @@ export async function DELETE(): Promise<NextResponse<ErrorResponse>> {
 
 export async function PATCH(): Promise<NextResponse<ErrorResponse>> {
   return NextResponse.json(
-    { 
+    {
       success: false,
-      error: 'Method not allowed. Use GET to verify a session.' 
+      error: 'Method not allowed. Use GET to verify a session.',
     },
     { status: 405 }
   );

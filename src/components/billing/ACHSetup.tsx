@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, AlertCircle, Clock, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStripeClient } from '@/lib/stripe/config';
+import { cn } from '@/lib/utils';
 import type { Stripe, StripeElements } from '@stripe/stripe-js';
+import { AlertCircle, Check, Clock, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 // TypeScript interfaces
 export interface ACHSetupProps {
@@ -30,12 +30,7 @@ interface SetupIntentData {
   mandateText: string;
 }
 
-const ACHSetup: React.FC<ACHSetupProps> = ({
-  customerId,
-  onSuccess,
-  onCancel,
-  className,
-}) => {
+const ACHSetup: React.FC<ACHSetupProps> = ({ customerId, onSuccess, onCancel, className }) => {
   // State management
   const [loading, setLoading] = useState(false);
   const [setupIntentData, setSetupIntentData] = useState<SetupIntentData | null>(null);
@@ -71,7 +66,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
   const createSetupIntent = async () => {
     try {
       setLoading(true);
-      
+
       const response = await fetch('/api/stripe/ach/setup', {
         method: 'POST',
         headers: {
@@ -95,7 +90,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
           setupIntentId: result.setup_intent_id,
           mandateText: result.mandate_text,
         });
-        
+
         // Initialize Stripe Elements for bank account collection
         if (stripe) {
           const elementsInstance = stripe.elements({
@@ -103,7 +98,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
           });
           setElements(elementsInstance);
         }
-        
+
         toast.success('Ready to set up bank account');
       } else {
         throw new Error(result.error || 'Failed to create setup intent');
@@ -154,10 +149,10 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
           status: 'verified',
           message: 'Bank account verified successfully',
         });
-        
+
         // Verify payment method on the backend
         await verifyPaymentMethod(setupIntent.id);
-        
+
         toast.success('Bank account setup completed!');
         onSuccess(setupIntent.payment_method as string, setupIntent.id);
       } else if (setupIntent?.status === 'requires_action') {
@@ -165,9 +160,12 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
         setVerificationStatus({
           status: 'requires_action',
           message: 'Microdeposit verification required',
-          nextSteps: 'Check your bank account for 2 small deposits (usually 1-2 business days) and verify the amounts.',
+          nextSteps:
+            'Check your bank account for 2 small deposits (usually 1-2 business days) and verify the amounts.',
         });
-        toast.info('Microdeposit verification initiated. Check your bank account in 1-2 business days.');
+        toast.info(
+          'Microdeposit verification initiated. Check your bank account in 1-2 business days.'
+        );
       } else {
         setVerificationStatus({
           status: 'pending',
@@ -192,7 +190,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
     try {
       const response = await fetch(`/api/stripe/ach/verify?setup_intent_id=${setupIntentId}`);
       const result = await response.json();
-      
+
       if (result.success && result.paymentMethod) {
         console.log('Payment method verified and stored:', result.paymentMethod);
       }
@@ -210,7 +208,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
   }, [stripe]);
 
   // Handle form validation
-  const isFormValid = 
+  const isFormValid =
     bankDetails.accountNumber.length >= 4 &&
     bankDetails.routingNumber.length === 9 &&
     bankDetails.accountHolderName.trim().length > 0 &&
@@ -221,12 +219,32 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
     if (!verificationStatus) return null;
 
     const { status, message, nextSteps } = verificationStatus;
-    
+
     const statusConfig = {
-      pending: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-      verified: { icon: Check, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
-      failed: { icon: X, color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' },
-      requires_action: { icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+      pending: {
+        icon: Clock,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+      },
+      verified: {
+        icon: Check,
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200',
+      },
+      failed: {
+        icon: X,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200',
+      },
+      requires_action: {
+        icon: AlertCircle,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200',
+      },
     };
 
     const config = statusConfig[status];
@@ -238,9 +256,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
           <Icon className={cn('w-5 h-5 mt-0.5', config.color)} />
           <div className="flex-1">
             <p className={cn('font-medium', config.color)}>{message}</p>
-            {nextSteps && (
-              <p className="text-sm text-gray-600 mt-1">{nextSteps}</p>
-            )}
+            {nextSteps && <p className="text-sm text-gray-600 mt-1">{nextSteps}</p>}
           </div>
         </div>
       </div>
@@ -276,45 +292,58 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
             </Button>
           )}
         </div>
-        
+
         {/* Progress Steps */}
         <div className="flex items-center space-x-4 mt-6">
           <div className="flex items-center">
-            <div className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-              currentStep === 'setup' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
-            )}>
+            <div
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                currentStep === 'setup' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
+              )}
+            >
               1
             </div>
             <span className="ml-2 text-sm font-medium text-gray-700">Bank Details</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-200">
-            <div className={cn(
-              'h-full transition-all duration-300',
-              currentStep !== 'setup' ? 'bg-green-600 w-full' : 'bg-blue-600 w-0'
-            )}></div>
+            <div
+              className={cn(
+                'h-full transition-all duration-300',
+                currentStep !== 'setup' ? 'bg-green-600 w-full' : 'bg-blue-600 w-0'
+              )}
+            ></div>
           </div>
           <div className="flex items-center">
-            <div className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-              currentStep === 'setup' ? 'bg-gray-200 text-gray-500' :
-              currentStep === 'verification' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
-            )}>
+            <div
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                currentStep === 'setup'
+                  ? 'bg-gray-200 text-gray-500'
+                  : currentStep === 'verification'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-green-600 text-white'
+              )}
+            >
               2
             </div>
             <span className="ml-2 text-sm font-medium text-gray-700">Verification</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-200">
-            <div className={cn(
-              'h-full transition-all duration-300',
-              currentStep === 'complete' ? 'bg-green-600 w-full' : 'bg-blue-600 w-0'
-            )}></div>
+            <div
+              className={cn(
+                'h-full transition-all duration-300',
+                currentStep === 'complete' ? 'bg-green-600 w-full' : 'bg-blue-600 w-0'
+              )}
+            ></div>
           </div>
           <div className="flex items-center">
-            <div className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-              currentStep === 'complete' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'
-            )}>
+            <div
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                currentStep === 'complete' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'
+              )}
+            >
               3
             </div>
             <span className="ml-2 text-sm font-medium text-gray-700">Complete</span>
@@ -334,7 +363,9 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                 <input
                   type="text"
                   value={bankDetails.accountHolderName}
-                  onChange={(e) => setBankDetails(prev => ({ ...prev, accountHolderName: e.target.value }))}
+                  onChange={(e) =>
+                    setBankDetails((prev) => ({ ...prev, accountHolderName: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter full name as it appears on your bank account"
                 />
@@ -348,7 +379,12 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                   <input
                     type="text"
                     value={bankDetails.routingNumber}
-                    onChange={(e) => setBankDetails(prev => ({ ...prev, routingNumber: e.target.value.replace(/\D/g, '') }))}
+                    onChange={(e) =>
+                      setBankDetails((prev) => ({
+                        ...prev,
+                        routingNumber: e.target.value.replace(/\D/g, ''),
+                      }))
+                    }
                     maxLength={9}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="9-digit routing number"
@@ -362,7 +398,12 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                   <input
                     type="text"
                     value={bankDetails.accountNumber}
-                    onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value.replace(/\D/g, '') }))}
+                    onChange={(e) =>
+                      setBankDetails((prev) => ({
+                        ...prev,
+                        accountNumber: e.target.value.replace(/\D/g, ''),
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Bank account number"
                   />
@@ -370,9 +411,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account Type
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
                 <div className="flex space-x-4">
                   <label className="flex items-center">
                     <input
@@ -380,7 +419,12 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                       name="accountType"
                       value="checking"
                       checked={bankDetails.accountType === 'checking'}
-                      onChange={(e) => setBankDetails(prev => ({ ...prev, accountType: e.target.value as 'checking' | 'savings' }))}
+                      onChange={(e) =>
+                        setBankDetails((prev) => ({
+                          ...prev,
+                          accountType: e.target.value as 'checking' | 'savings',
+                        }))
+                      }
                       className="mr-2"
                     />
                     Checking
@@ -391,7 +435,12 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                       name="accountType"
                       value="savings"
                       checked={bankDetails.accountType === 'savings'}
-                      onChange={(e) => setBankDetails(prev => ({ ...prev, accountType: e.target.value as 'checking' | 'savings' }))}
+                      onChange={(e) =>
+                        setBankDetails((prev) => ({
+                          ...prev,
+                          accountType: e.target.value as 'checking' | 'savings',
+                        }))
+                      }
                       className="mr-2"
                     />
                     Savings
@@ -407,7 +456,9 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                   <h4 className="font-medium text-gray-900 mb-2">Authorization Agreement</h4>
                   <div className="text-sm text-gray-700 max-h-40 overflow-y-auto">
                     {setupIntentData.mandateText.split('\n\n').map((paragraph, index) => (
-                      <p key={index} className="mb-2">{paragraph}</p>
+                      <p key={index} className="mb-2">
+                        {paragraph}
+                      </p>
                     ))}
                   </div>
                 </div>
@@ -420,8 +471,9 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
                     className="mt-1"
                   />
                   <span className="text-sm text-gray-700">
-                    I authorize EZMedTech to electronically debit my bank account for subscription payments. 
-                    I understand that ACH transactions may take 3-5 business days to process.
+                    I authorize EZMedTech to electronically debit my bank account for subscription
+                    payments. I understand that ACH transactions may take 3-5 business days to
+                    process.
                   </span>
                 </label>
               </div>
@@ -442,7 +494,7 @@ const ACHSetup: React.FC<ACHSetupProps> = ({
         {(currentStep === 'verification' || currentStep === 'complete') && (
           <div className="space-y-4">
             {renderVerificationStatus()}
-            
+
             {currentStep === 'complete' && (
               <div className="text-center py-4">
                 <Badge variant="default" className="bg-green-600 text-white px-4 py-2">

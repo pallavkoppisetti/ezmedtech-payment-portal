@@ -1,4 +1,4 @@
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 
 // Cache for parameters to avoid repeated AWS calls
 const parameterCache = new Map<string, string>();
@@ -54,7 +54,9 @@ export async function getParameter(parameterName: string): Promise<string | null
       parameterCache.set(parameterName, value);
       return value;
     } else {
-      console.error(`[Parameter Store] ❌ Fetched parameter ${parameterName}, but it has no value.`);
+      console.error(
+        `[Parameter Store] ❌ Fetched parameter ${parameterName}, but it has no value.`
+      );
       return null;
     }
   } catch (error) {
@@ -71,13 +73,31 @@ export async function getParameter(parameterName: string): Promise<string | null
  */
 export async function getStripeSecretKey(): Promise<string> {
   console.log('[Stripe] Attempting to retrieve Stripe Secret Key...');
+
+  // In development, use environment variable first
+  if (process.env.NODE_ENV === 'development') {
+    const envKey = process.env.STRIPE_SECRET_KEY;
+    if (envKey) {
+      console.log(
+        '[Stripe] ✅ Using Stripe Secret Key from environment variable (development mode).'
+      );
+      return envKey;
+    }
+    console.log(
+      '[Stripe] ⚠️ STRIPE_SECRET_KEY not found in environment variables, falling back to Parameter Store...'
+    );
+  }
+
+  // For production or when env var is not available, use Parameter Store
   const key = await getParameter('STRIPE_SECRET_KEY');
 
   if (!key) {
-    console.error('[Stripe] ❌ CRITICAL: STRIPE_SECRET_KEY could not be retrieved from Parameter Store.');
+    console.error(
+      '[Stripe] ❌ CRITICAL: STRIPE_SECRET_KEY could not be retrieved from Parameter Store.'
+    );
     throw new Error('STRIPE_SECRET_KEY not found. Check Parameter Store and IAM permissions.');
   }
 
-  console.log('[Stripe] ✅ Successfully retrieved Stripe Secret Key.');
+  console.log('[Stripe] ✅ Successfully retrieved Stripe Secret Key from Parameter Store.');
   return key;
 }

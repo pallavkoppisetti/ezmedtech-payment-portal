@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ACHSetup from '@/components/billing/ACHSetup';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PRICING_TIERS } from '@/lib/stripe/products';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 // Types for dashboard data
 interface SubscriptionStatus {
@@ -22,9 +24,11 @@ interface SubscriptionStatus {
 interface PaymentMethod {
   type: 'card' | 'bank_account';
   brand?: string;
+  bankName?: string;
   last4: string;
   expMonth?: number;
   expYear?: number;
+  verified?: boolean;
 }
 
 interface UsageStats {
@@ -52,7 +56,7 @@ interface Invoice {
 
 interface DashboardData {
   subscription: SubscriptionStatus;
-  paymentMethod: PaymentMethod;
+  paymentMethods: PaymentMethod[];
   usage: UsageStats;
   invoices: Invoice[];
 }
@@ -70,13 +74,21 @@ const mockDashboardData: DashboardData = {
     customerId: 'cus_test_123',
     subscriptionId: 'sub_test_456',
   },
-  paymentMethod: {
-    type: 'card',
-    brand: 'Visa',
-    last4: '4242',
-    expMonth: 12,
-    expYear: 2028,
-  },
+  paymentMethods: [
+    {
+      type: 'card',
+      brand: 'Visa',
+      last4: '4242',
+      expMonth: 12,
+      expYear: 2028,
+    },
+    {
+      type: 'bank_account',
+      bankName: 'Chase Bank',
+      last4: '6789',
+      verified: true,
+    },
+  ],
   usage: {
     patients: {
       current: 245,
@@ -121,6 +133,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showACHSetup, setShowACHSetup] = useState(false);
 
   useEffect(() => {
     // Simulate API call - replace with real Stripe data fetching later
@@ -128,7 +141,7 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         setData(mockDashboardData);
       } catch (err) {
         setError('Failed to load dashboard data');
@@ -141,13 +154,29 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  // Handle ACH setup success
+  const handleACHSetupSuccess = (paymentMethodId: string, setupIntentId: string) => {
+    toast.success(
+      'Bank account added successfully! Verification will be completed within 1-2 business days.'
+    );
+    setShowACHSetup(false);
+
+    // In a real app, refresh payment methods data here
+    // fetchDashboardData();
+  };
+
+  // Handle ACH setup cancellation
+  const handleACHSetupCancel = () => {
+    setShowACHSetup(false);
+  };
+
   // Handle opening Stripe customer portal
   const handleManageBilling = async () => {
     if (!data?.subscription.customerId) return;
-    
+
     try {
       setPortalLoading(true);
-      
+
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
         headers: {
@@ -176,7 +205,9 @@ export default function DashboardPage() {
   };
 
   // Get current plan details
-  const currentPlan = data ? PRICING_TIERS.find(tier => tier.id === data.subscription.planId) : null;
+  const currentPlan = data
+    ? PRICING_TIERS.find((tier) => tier.id === data.subscription.planId)
+    : null;
 
   // Status badge variant mapping
   const getStatusBadgeVariant = (status: string) => {
@@ -231,7 +262,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage your subscription and billing</p>
         </div>
-        
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -259,13 +290,17 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage your subscription and billing</p>
         </div>
-        
+
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
               <div className="text-red-600">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div>
@@ -273,8 +308,8 @@ export default function DashboardPage() {
                 <p className="text-red-600 text-sm">{error}</p>
               </div>
             </div>
-            <button 
-              className="mt-4 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50" 
+            <button
+              className="mt-4 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
               onClick={() => window.location.reload()}
             >
               Try Again
@@ -297,14 +332,14 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        
         {/* Subscription Status Card */}
         <Card className="md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Subscription Status
               <Badge variant={getStatusBadgeVariant(data.subscription.status)}>
-                {data.subscription.status.charAt(0).toUpperCase() + data.subscription.status.slice(1)}
+                {data.subscription.status.charAt(0).toUpperCase() +
+                  data.subscription.status.slice(1)}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -324,7 +359,9 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Next Billing Amount</p>
-                <p className="font-semibold text-lg">{formatCurrency(data.subscription.nextBillingAmount)}</p>
+                <p className="font-semibold text-lg">
+                  {formatCurrency(data.subscription.nextBillingAmount)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -341,12 +378,16 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Price</span>
-                  <span className="font-semibold">{formatCurrency(currentPlan.price.monthly)}/month</span>
+                  <span className="font-semibold">
+                    {formatCurrency(currentPlan.price.monthly)}/month
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Patients</span>
                   <span className="font-medium">
-                    {currentPlan.maxPatients === 'unlimited' ? 'Unlimited' : currentPlan.maxPatients}
+                    {currentPlan.maxPatients === 'unlimited'
+                      ? 'Unlimited'
+                      : currentPlan.maxPatients}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -368,28 +409,97 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Payment Method Card */}
+        {/* Payment Methods Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Payment Method</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Payment Methods</CardTitle>
+              <button
+                onClick={() => setShowACHSetup(true)}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Add Bank Account
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-6 bg-blue-600 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
-                    {data.paymentMethod.brand?.slice(0, 2).toUpperCase()}
-                  </span>
+            <div className="space-y-4">
+              {data.paymentMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`w-8 h-6 rounded flex items-center justify-center ${
+                        method.type === 'card' ? 'bg-blue-600' : 'bg-green-600'
+                      }`}
+                    >
+                      <span className="text-white text-xs font-bold">
+                        {method.type === 'card' ? method.brand?.slice(0, 2).toUpperCase() : 'BK'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {method.type === 'card'
+                          ? `•••• •••• •••• ${method.last4}`
+                          : `${method.bankName} ••••${method.last4}`}
+                      </p>
+                      {method.type === 'card' && method.expMonth && method.expYear && (
+                        <p className="text-sm text-gray-600">
+                          Expires {method.expMonth.toString().padStart(2, '0')}/{method.expYear}
+                        </p>
+                      )}
+                      {method.type === 'bank_account' && (
+                        <div className="flex items-center space-x-2">
+                          <p className="text-sm text-gray-600">Bank Account</p>
+                          <Badge
+                            variant={method.verified ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {method.verified ? 'Verified' : 'Pending Verification'}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {!method.verified && method.type === 'bank_account' && (
+                      <button
+                        className="px-2 py-1 text-xs border border-blue-300 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                        onClick={() => {
+                          toast.info(
+                            'Verification typically takes 1-2 business days. You will receive an email when complete.'
+                          );
+                        }}
+                      >
+                        Check Status
+                      </button>
+                    )}
+                    <button
+                      className="px-2 py-1 text-xs border border-gray-300 text-gray-600 rounded hover:bg-gray-50 transition-colors"
+                      onClick={() => {
+                        toast.success('Payment method removed successfully');
+                        // In a real app, call API to remove payment method
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">•••• •••• •••• {data.paymentMethod.last4}</p>
-                  {data.paymentMethod.expMonth && data.paymentMethod.expYear && (
-                    <p className="text-sm text-gray-600">
-                      Expires {data.paymentMethod.expMonth.toString().padStart(2, '0')}/{data.paymentMethod.expYear}
-                    </p>
-                  )}
+              ))}
+
+              {data.paymentMethods.length === 0 && (
+                <div className="text-center py-6 text-gray-500">
+                  <p>No payment methods added yet</p>
+                  <button
+                    onClick={() => setShowACHSetup(true)}
+                    className="mt-2 text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Add your first payment method
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -402,34 +512,51 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 md:grid-cols-3">
-              
               {/* Patients Usage */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Patients</span>
                   <span className="text-sm font-semibold">
-                    {data.usage.patients.current} / {data.usage.patients.limit === 'unlimited' ? '∞' : data.usage.patients.limit}
+                    {data.usage.patients.current} /{' '}
+                    {data.usage.patients.limit === 'unlimited' ? '∞' : data.usage.patients.limit}
                   </span>
                 </div>
                 {data.usage.patients.limit !== 'unlimited' && (
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        getUsagePercentage(data.usage.patients.current, data.usage.patients.limit) >= 90
+                        getUsagePercentage(
+                          data.usage.patients.current,
+                          data.usage.patients.limit
+                        ) >= 90
                           ? 'bg-red-600'
-                          : getUsagePercentage(data.usage.patients.current, data.usage.patients.limit) >= 75
+                          : getUsagePercentage(
+                              data.usage.patients.current,
+                              data.usage.patients.limit
+                            ) >= 75
                           ? 'bg-yellow-500'
                           : 'bg-green-600'
                       }`}
-                      style={{ width: `${getUsagePercentage(data.usage.patients.current, data.usage.patients.limit)}%` }}
+                      style={{
+                        width: `${getUsagePercentage(
+                          data.usage.patients.current,
+                          data.usage.patients.limit
+                        )}%`,
+                      }}
                     />
                   </div>
                 )}
-                <p className={`text-xs ${getUsageColor(getUsagePercentage(data.usage.patients.current, data.usage.patients.limit))}`}>
-                  {data.usage.patients.limit !== 'unlimited' 
-                    ? `${getUsagePercentage(data.usage.patients.current, data.usage.patients.limit).toFixed(1)}% used`
-                    : 'Unlimited'
-                  }
+                <p
+                  className={`text-xs ${getUsageColor(
+                    getUsagePercentage(data.usage.patients.current, data.usage.patients.limit)
+                  )}`}
+                >
+                  {data.usage.patients.limit !== 'unlimited'
+                    ? `${getUsagePercentage(
+                        data.usage.patients.current,
+                        data.usage.patients.limit
+                      ).toFixed(1)}% used`
+                    : 'Unlimited'}
                 </p>
               </div>
 
@@ -438,28 +565,48 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">API Calls</span>
                   <span className="text-sm font-semibold">
-                    {data.usage.apiCalls.current.toLocaleString()} / {data.usage.apiCalls.limit === 'unlimited' ? '∞' : data.usage.apiCalls.limit.toLocaleString()}
+                    {data.usage.apiCalls.current.toLocaleString()} /{' '}
+                    {data.usage.apiCalls.limit === 'unlimited'
+                      ? '∞'
+                      : data.usage.apiCalls.limit.toLocaleString()}
                   </span>
                 </div>
                 {data.usage.apiCalls.limit !== 'unlimited' && (
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit) >= 90
+                        getUsagePercentage(
+                          data.usage.apiCalls.current,
+                          data.usage.apiCalls.limit
+                        ) >= 90
                           ? 'bg-red-600'
-                          : getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit) >= 75
+                          : getUsagePercentage(
+                              data.usage.apiCalls.current,
+                              data.usage.apiCalls.limit
+                            ) >= 75
                           ? 'bg-yellow-500'
                           : 'bg-green-600'
                       }`}
-                      style={{ width: `${getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit)}%` }}
+                      style={{
+                        width: `${getUsagePercentage(
+                          data.usage.apiCalls.current,
+                          data.usage.apiCalls.limit
+                        )}%`,
+                      }}
                     />
                   </div>
                 )}
-                <p className={`text-xs ${getUsageColor(getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit))}`}>
-                  {data.usage.apiCalls.limit !== 'unlimited' 
-                    ? `${getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit).toFixed(1)}% used`
-                    : 'Unlimited'
-                  }
+                <p
+                  className={`text-xs ${getUsageColor(
+                    getUsagePercentage(data.usage.apiCalls.current, data.usage.apiCalls.limit)
+                  )}`}
+                >
+                  {data.usage.apiCalls.limit !== 'unlimited'
+                    ? `${getUsagePercentage(
+                        data.usage.apiCalls.current,
+                        data.usage.apiCalls.limit
+                      ).toFixed(1)}% used`
+                    : 'Unlimited'}
                 </p>
               </div>
 
@@ -476,15 +623,30 @@ export default function DashboardPage() {
                     className={`h-2 rounded-full transition-all duration-300 ${
                       getUsagePercentage(data.usage.storage.current, data.usage.storage.limit) >= 90
                         ? 'bg-red-600'
-                        : getUsagePercentage(data.usage.storage.current, data.usage.storage.limit) >= 75
+                        : getUsagePercentage(
+                            data.usage.storage.current,
+                            data.usage.storage.limit
+                          ) >= 75
                         ? 'bg-yellow-500'
                         : 'bg-green-600'
                     }`}
-                    style={{ width: `${getUsagePercentage(data.usage.storage.current, data.usage.storage.limit)}%` }}
+                    style={{
+                      width: `${getUsagePercentage(
+                        data.usage.storage.current,
+                        data.usage.storage.limit
+                      )}%`,
+                    }}
                   />
                 </div>
-                <p className={`text-xs ${getUsageColor(getUsagePercentage(data.usage.storage.current, data.usage.storage.limit))}`}>
-                  {getUsagePercentage(data.usage.storage.current, data.usage.storage.limit).toFixed(1)}% used
+                <p
+                  className={`text-xs ${getUsageColor(
+                    getUsagePercentage(data.usage.storage.current, data.usage.storage.limit)
+                  )}`}
+                >
+                  {getUsagePercentage(data.usage.storage.current, data.usage.storage.limit).toFixed(
+                    1
+                  )}
+                  % used
                 </p>
               </div>
             </div>
@@ -500,7 +662,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               {data.invoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div
+                  key={invoice.id}
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                >
                   <div className="flex items-center space-x-3">
                     <div>
                       <p className="font-medium">{formatDate(invoice.date)}</p>
@@ -510,8 +675,14 @@ export default function DashboardPage() {
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
-                      <Badge 
-                        variant={invoice.status === 'paid' ? 'default' : invoice.status === 'pending' ? 'secondary' : 'destructive'}
+                      <Badge
+                        variant={
+                          invoice.status === 'paid'
+                            ? 'default'
+                            : invoice.status === 'pending'
+                            ? 'secondary'
+                            : 'destructive'
+                        }
                         className="text-xs"
                       >
                         {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
@@ -535,27 +706,30 @@ export default function DashboardPage() {
             <CardTitle>Account Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <button 
+            <button
               onClick={handleManageBilling}
               disabled={portalLoading}
               className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-center block"
             >
               {portalLoading ? 'Opening Portal...' : 'Manage Billing'}
             </button>
-            <Link href="/pricing" className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors text-center block">
+            <Link
+              href="/pricing"
+              className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors text-center block"
+            >
               Change Plan
             </Link>
-            <button 
+            <button
               className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
               onClick={() => {
                 // Create a downloadable file with invoice data
                 const csvContent = [
                   'Date,Invoice ID,Amount,Status',
-                  ...data.invoices.map(inv => 
-                    `${inv.date},${inv.id},${inv.amount},${inv.status}`
-                  )
+                  ...data.invoices.map(
+                    (inv) => `${inv.date},${inv.id},${inv.amount},${inv.status}`
+                  ),
                 ].join('\n');
-                
+
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -570,6 +744,32 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ACH Setup Modal */}
+      {showACHSetup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Add Bank Account</h3>
+              <button onClick={handleACHSetupCancel} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <ACHSetup
+              customerId={data.subscription.customerId}
+              onSuccess={handleACHSetupSuccess}
+              onCancel={handleACHSetupCancel}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

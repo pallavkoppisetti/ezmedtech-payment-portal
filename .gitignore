@@ -1,6 +1,9 @@
+# EZMedTech Payment Portal - Optimized for AWS Amplify Deployment
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# ========================================
+# Dependencies & Package Managers
+# ========================================
 /node_modules
 /.pnp
 .pnp.*
@@ -10,38 +13,124 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# ========================================
+# Build Outputs & Generated Files
+# ========================================
 /.next/
 /out/
-
-# production
 /build
+/dist
 
-# misc
-.DS_Store
-*.pem
+# TypeScript build outputs
+*.tsbuildinfo
+next-env.d.ts
 
-# debug
+# ========================================
+# Environment Variables & Secrets
+# ========================================
+# Exclude actual environment files with secrets
+.env.local
+.env.development.local
+.env.staging.local
+.env.production.local
+.env
+
+# Keep template files for reference
+!.env.example
+!.env.template
+
+# ========================================
+# Testing & Coverage
+# ========================================
+/coverage
+/test-results
+/playwright-report
+/test-output
+
+# ========================================
+# Logs & Debug Files
+# ========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
+# ========================================
+# Operating System Files
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# vercel
+# ========================================
+# IDE & Editor Files
+# ========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========================================
+# Deployment Platforms
+# ========================================
 .vercel
+.netlify
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-# Environment files (exclude actual secrets)
-.env.local
-.env.staging
-.env.production
+# ========================================
+# AWS & Amplify (Keep amplify.yml for deployment)
+# ========================================
+# AWS credentials (if accidentally added)
+.aws/
+aws-exports.js
 
-# But include templates for reference
-!.env.example
-!.env.template
+# ========================================
+# Temporary & Cache Files
+# ========================================
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+.turbo
+
+# ========================================
+# Security & Certificates
+# ========================================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ========================================
+# REQUIRED FOR AWS AMPLIFY DEPLOYMENT
+# ========================================
+# The following files/directories ARE INCLUDED for deployment:
+# - src/ (source code)
+# - public/ (static assets)
+# - package.json (dependencies)
+# - pnpm-lock.yaml (lock file)
+# - next.config.ts (Next.js configuration)
+# - tsconfig.json (TypeScript configuration)
+# - tailwind.config.js (if exists)
+# - postcss.config.mjs (PostCSS configuration)
+# - components.json (shadcn/ui configuration)
+# - amplify.yml (Amplify build specification)
+# - README.md (documentation)
+# - DEPLOYMENT.md (deployment guide)
+# - API_DOCUMENTATION.md (API reference)
+
+# ========================================
+# Optional: Development & Testing Scripts
+# ========================================
+# Uncomment if you don't want test scripts in production
+test-*.sh
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts

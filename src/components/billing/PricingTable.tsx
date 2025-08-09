@@ -1,16 +1,27 @@
 'use client';
 
-import React from 'react';
-import { Check } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { PRICING_TIERS, type PricingTier } from '@/lib/stripe/products';
 import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
+import React from 'react';
 
 // TypeScript props interface
 export interface PricingTableProps {
-  onSelectPlan: (tier: PricingTier, billingCycle: 'monthly' | 'yearly', paymentMethodType?: 'card' | 'ach') => void;
+  onSelectPlan: (
+    tier: PricingTier,
+    billingCycle: 'monthly' | 'yearly',
+    paymentMethodType?: 'card' | 'ach'
+  ) => void;
   className?: string;
   showYearlyPricing?: boolean;
   highlightTierId?: string;
@@ -19,7 +30,11 @@ export interface PricingTableProps {
 
 interface PricingCardProps {
   tier: PricingTier;
-  onSelectPlan: (tier: PricingTier, billingCycle: 'monthly' | 'yearly', paymentMethodType?: 'card' | 'ach') => void;
+  onSelectPlan: (
+    tier: PricingTier,
+    billingCycle: 'monthly' | 'yearly',
+    paymentMethodType?: 'card' | 'ach'
+  ) => void;
   isPopular?: boolean;
   showYearlyPricing?: boolean;
   showACHSavings?: boolean;
@@ -35,13 +50,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
   className,
 }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<'card' | 'ach'>('card');
-  
-  const currentPrice = showYearlyPricing && tier.price.yearly ? tier.price.yearly : tier.price.monthly;
+
+  const currentPrice =
+    showYearlyPricing && tier.price.yearly ? tier.price.yearly : tier.price.monthly;
   const billingCycle = showYearlyPricing && tier.price.yearly ? 'yearly' : 'monthly';
   const originalPrice = showYearlyPricing && tier.price.yearly ? tier.price.monthly : null;
-  
+
   // Calculate yearly discount percentage
-  const yearlyDiscount = originalPrice 
+  const yearlyDiscount = originalPrice
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;
 
@@ -49,10 +65,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
   const achSavings = showACHSavings && selectedPaymentMethod === 'ach';
 
   return (
-    <Card 
+    <Card
       className={cn(
-        "relative flex flex-col h-full transition-all duration-200 hover:shadow-lg",
-        isPopular && "border-blue-500 border-2 shadow-lg scale-105",
+        'relative flex flex-col h-full transition-all duration-200 hover:shadow-lg',
+        isPopular && 'border-blue-500 border-2 shadow-lg scale-105',
         className
       )}
     >
@@ -63,7 +79,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
           </Badge>
         </div>
       )}
-      
+
       {achSavings && (
         <div className="absolute -top-3 right-4">
           <Badge variant="default" className="bg-green-600 text-white px-3 py-1">
@@ -71,34 +87,26 @@ const PricingCard: React.FC<PricingCardProps> = ({
           </Badge>
         </div>
       )}
-      
-      <CardHeader className={cn("text-center", isPopular && "pt-8")}>
+
+      <CardHeader className={cn('text-center', isPopular && 'pt-8')}>
         <CardTitle className="text-xl font-bold text-gray-900">{tier.name}</CardTitle>
-        <CardDescription className="text-gray-500 mt-2">
-          {tier.description}
-        </CardDescription>
-        
+        <CardDescription className="text-gray-500 mt-2">{tier.description}</CardDescription>
+
         <div className="mt-4">
           <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold text-gray-900">
-              ${currentPrice}
-            </span>
-            <span className="text-gray-500 ml-2">
-              /{showYearlyPricing ? 'month' : 'month'}
-            </span>
+            <span className="text-4xl font-bold text-gray-900">${currentPrice}</span>
+            <span className="text-gray-500 ml-2">/{showYearlyPricing ? 'month' : 'month'}</span>
           </div>
-          
+
           {showYearlyPricing && originalPrice && (
             <div className="mt-2">
-              <span className="text-sm text-gray-500 line-through">
-                ${originalPrice}/month
-              </span>
+              <span className="text-sm text-gray-500 line-through">${originalPrice}/month</span>
               <span className="text-sm text-green-600 ml-2 font-medium">
                 Save {yearlyDiscount}%
               </span>
             </div>
           )}
-          
+
           {showYearlyPricing && tier.price.yearly && (
             <p className="text-sm text-gray-500 mt-1">
               Billed annually (${tier.price.yearly * 12}/year)
@@ -114,10 +122,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
               <button
                 onClick={() => setSelectedPaymentMethod('card')}
                 className={cn(
-                  "flex-1 px-3 py-2 text-sm rounded-md border transition-all duration-200",
+                  'flex-1 px-3 py-2 text-sm rounded-md border transition-all duration-200',
                   selectedPaymentMethod === 'card'
-                    ? "bg-blue-50 border-blue-200 text-blue-700"
-                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 )}
               >
                 💳 Card
@@ -125,10 +133,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
               <button
                 onClick={() => setSelectedPaymentMethod('ach')}
                 className={cn(
-                  "flex-1 px-3 py-2 text-sm rounded-md border transition-all duration-200",
+                  'flex-1 px-3 py-2 text-sm rounded-md border transition-all duration-200',
                   selectedPaymentMethod === 'ach'
-                    ? "bg-green-50 border-green-200 text-green-700"
-                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 )}
               >
                 🏦 Bank Transfer
@@ -147,27 +155,22 @@ const PricingCard: React.FC<PricingCardProps> = ({
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start">
-              <div className={cn(
-                "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mr-3 mt-0.5",
-                feature.included 
-                  ? "bg-green-100 text-green-600" 
-                  : "bg-gray-100 text-gray-400"
-              )}>
+              <div
+                className={cn(
+                  'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mr-3 mt-0.5',
+                  feature.included ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                )}
+              >
                 <Check className="w-3 h-3" />
               </div>
               <div>
-                <span 
-                  className={cn(
-                    "text-sm",
-                    feature.included ? "text-gray-900" : "text-gray-400"
-                  )}
+                <span
+                  className={cn('text-sm', feature.included ? 'text-gray-900' : 'text-gray-400')}
                 >
                   {feature.name}
                 </span>
                 {feature.description && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {feature.description}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{feature.description}</p>
                 )}
               </div>
             </li>
@@ -177,20 +180,21 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
       <CardFooter className="pt-6">
         <Button
-          onClick={() => onSelectPlan(tier, billingCycle, showACHSavings ? selectedPaymentMethod : undefined)}
+          onClick={() =>
+            onSelectPlan(tier, billingCycle, showACHSavings ? selectedPaymentMethod : undefined)
+          }
           className={cn(
-            "w-full transition-all duration-200",
-            isPopular 
-              ? "bg-blue-600 hover:bg-blue-700 text-white" 
-              : "bg-gray-900 hover:bg-gray-800 text-white",
-            showACHSavings && selectedPaymentMethod === 'ach' && "bg-green-600 hover:bg-green-700"
+            'w-full transition-all duration-200',
+            isPopular
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-gray-900 hover:bg-gray-800 text-white',
+            showACHSavings && selectedPaymentMethod === 'ach' && 'bg-green-600 hover:bg-green-700'
           )}
           size="lg"
         >
-          {showACHSavings && selectedPaymentMethod === 'ach' 
-            ? 'Get Started with Bank Transfer' 
-            : 'Get Started'
-          }
+          {showACHSavings && selectedPaymentMethod === 'ach'
+            ? 'Get Started with Bank Transfer'
+            : 'Get Started'}
         </Button>
       </CardFooter>
     </Card>
@@ -205,23 +209,21 @@ const PricingTable: React.FC<PricingTableProps> = ({
   showACHSavings = false,
 }) => {
   return (
-    <div className={cn("w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", className)}>
+    <div className={cn('w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8', className)}>
       {/* Header Section */}
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-          Choose Your Plan
-        </h2>
+        <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Choose Your Plan</h2>
         <p className="mt-4 text-lg text-gray-600">
           Select the perfect plan for your healthcare practice
         </p>
-        
+
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           {showYearlyPricing && (
             <Badge variant="secondary" className="bg-green-100 text-green-800">
               💰 Save up to 20% with yearly billing
             </Badge>
           )}
-          
+
           {showACHSavings && (
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
               🏦 Save 60% on processing fees with bank transfer
@@ -234,7 +236,7 @@ const PricingTable: React.FC<PricingTableProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-6">
         {PRICING_TIERS.map((tier) => {
           const isPopular = tier.popular || tier.id === highlightTierId;
-          
+
           return (
             <PricingCard
               key={tier.id}
@@ -243,10 +245,7 @@ const PricingTable: React.FC<PricingTableProps> = ({
               isPopular={isPopular}
               showYearlyPricing={showYearlyPricing}
               showACHSavings={showACHSavings}
-              className={cn(
-                "transform transition-all duration-200",
-                isPopular && "lg:scale-105"
-              )}
+              className={cn('transform transition-all duration-200', isPopular && 'lg:scale-105')}
             />
           );
         })}

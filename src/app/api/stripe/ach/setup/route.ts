@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getStripeServer, handleStripeError } from '@/lib/stripe/config';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 
 // TypeScript interface for request body
@@ -21,17 +21,16 @@ interface ErrorResponse {
   details?: string;
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<ACHSetupResponse | ErrorResponse>> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ACHSetupResponse | ErrorResponse>> {
   try {
     // Parse the request body
     const body: ACHSetupRequestBody = await request.json();
-    
+
     // Validate required fields
     if (!body.customer_id) {
-      return NextResponse.json(
-        { error: 'customer_id is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
     }
 
     // Validate customer_id format (should be Stripe customer ID)
@@ -63,9 +62,10 @@ This payment method will be securely stored and used for recurring subscription 
         customer_acceptance: {
           type: 'online',
           online: {
-            ip_address: request.headers.get('x-forwarded-for') || 
-                       request.headers.get('x-real-ip') || 
-                       '127.0.0.1',
+            ip_address:
+              request.headers.get('x-forwarded-for') ||
+              request.headers.get('x-real-ip') ||
+              '127.0.0.1',
             user_agent: request.headers.get('user-agent') || 'Unknown',
           },
         },
@@ -97,14 +97,13 @@ This payment method will be securely stored and used for recurring subscription 
       },
       { status: 200 }
     );
-
   } catch (error) {
     // Log the error for debugging
     console.error('Stripe ACH SetupIntent creation failed:', error);
 
     // Handle Stripe-specific errors
     const errorMessage = handleStripeError(error);
-    
+
     // Return appropriate error response
     if (error instanceof Error) {
       return NextResponse.json(

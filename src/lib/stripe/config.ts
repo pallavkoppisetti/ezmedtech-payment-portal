@@ -1,12 +1,7 @@
+import { getStripeSecretKey } from '@/lib/aws/secrets';
+import type { ACHProcessingOptions, ACHVerificationStatus } from '@/lib/types/ach';
 import { Stripe, loadStripe } from '@stripe/stripe-js';
 import StripeServer from 'stripe';
-import { getStripeSecretKey } from '@/lib/aws/secrets';
-import type { 
-  ACHPaymentMethod, 
-  ACHVerificationStatus,
-  ACHProcessingOptions 
-} from '@/lib/types/ach';
-
 
 // Environment detection
 const isServer = typeof window === 'undefined';
@@ -20,7 +15,7 @@ const validateClientEnvironment = () => {
   if (!publishableKey) {
     throw new Error(
       'Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. ' +
-      'Please check your .env.local file and ensure the Stripe publishable key is properly configured.'
+        'Please check your .env.local file and ensure the Stripe publishable key is properly configured.'
     );
   }
 
@@ -32,7 +27,7 @@ const validateClientEnvironment = () => {
   if (process.env.NODE_ENV === 'production' && publishableKey.includes('test')) {
     console.warn(
       '⚠️  WARNING: You are using Stripe test publishable key in production environment. ' +
-      'Please ensure you are using live keys for production.'
+        'Please ensure you are using live keys for production.'
     );
   }
 };
@@ -46,7 +41,7 @@ const validateServerEnvironment = () => {
   if (!secretKey) {
     throw new Error(
       'Missing STRIPE_SECRET_KEY. ' +
-      'Please check your .env.local file and ensure the Stripe secret key is properly configured.'
+        'Please check your .env.local file and ensure the Stripe secret key is properly configured.'
     );
   }
 
@@ -60,7 +55,7 @@ const validateServerEnvironment = () => {
     if (process.env.NODE_ENV !== 'production' || !process.env.BUILDING) {
       console.warn(
         '⚠️  WARNING: You are using Stripe test secret key in production environment. ' +
-        'Please ensure you are using live keys for production.'
+          'Please ensure you are using live keys for production.'
       );
     }
   }
@@ -93,7 +88,7 @@ export const getStripeClient = (): Promise<Stripe | null> => {
   return stripeClientPromise;
 };
 
-// Server-side Stripe instance 
+// Server-side Stripe instance
 let stripeServerInstance: StripeServer | null = null;
 
 export const getStripeServer = async (): Promise<StripeServer> => {
@@ -105,7 +100,7 @@ export const getStripeServer = async (): Promise<StripeServer> => {
     try {
       // Get secret key from Parameter Store in production, env var in development
       const secretKey = await getStripeSecretKey();
-      
+
       stripeServerInstance = new StripeServer(secretKey, {
         apiVersion: '2025-07-30.basil',
         typescript: true,
@@ -113,7 +108,9 @@ export const getStripeServer = async (): Promise<StripeServer> => {
       });
     } catch (error) {
       throw new Error(
-        `Failed to initialize Stripe server instance: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to initialize Stripe server instance: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
       );
     }
   }
@@ -143,17 +140,15 @@ export { loadStripe };
 
 // Type definitions for common Stripe objects
 export type {
-  Stripe as StripeClient,
-  StripeElements,
-  StripeCardElement,
-  StripeError,
   PaymentIntent,
   PaymentMethod,
+  StripeCardElement,
+  Stripe as StripeClient,
+  StripeElements,
+  StripeError,
 } from '@stripe/stripe-js';
 
-export type {
-  Stripe as StripeServerType,
-} from 'stripe';
+export type { Stripe as StripeServerType } from 'stripe';
 
 // Re-export commonly used server-side types
 export type StripeCustomer = StripeServer.Customer;
@@ -210,7 +205,7 @@ export const createACHSetupIntent = async (
 ): Promise<StripeServer.SetupIntent> => {
   try {
     const stripe = await getStripeServer();
-    
+
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ['us_bank_account'],
@@ -251,16 +246,16 @@ export const verifyACHPaymentMethod = async (
 }> => {
   try {
     const stripe = await getStripeServer();
-    
+
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-    
+
     if (paymentMethod.type !== 'us_bank_account') {
       throw new Error('Payment method is not a US bank account');
     }
 
     const usBankAccount = paymentMethod.us_bank_account;
     let status: ACHVerificationStatus = 'pending';
-    
+
     // Check if the payment method has been verified
     // Note: Stripe's PaymentMethod object doesn't expose verification status directly
     // We need to check if it can be used for payments
@@ -298,7 +293,7 @@ export const createACHPaymentIntent = async (
 ): Promise<StripeServer.PaymentIntent> => {
   try {
     const stripe = await getStripeServer();
-    
+
     // Verify the payment method is ACH and verified
     const verificationResult = await verifyACHPaymentMethod(paymentMethodId);
     if (verificationResult.status !== 'verified') {
@@ -353,7 +348,7 @@ export const createACHSubscription = async (
 ): Promise<StripeServer.Subscription> => {
   try {
     const stripe = await getStripeServer();
-    
+
     // Verify the payment method is ACH and verified
     const verificationResult = await verifyACHPaymentMethod(paymentMethodId);
     if (verificationResult.status !== 'verified') {
@@ -405,14 +400,14 @@ export const confirmACHMicrodeposits = async (
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const stripe = await getStripeServer();
-    
+
     // For ACH verification, we typically need to handle this through
     // the payment method's verification endpoint or setup intent
     // This is a placeholder implementation - actual verification
     // would depend on your specific Stripe integration setup
-    
+
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-    
+
     if (paymentMethod.type !== 'us_bank_account') {
       throw new Error('Payment method is not a US bank account');
     }
@@ -421,7 +416,7 @@ export const confirmACHMicrodeposits = async (
     // 1. Submit the amounts to Stripe's verification endpoint
     // 2. Handle the response and update verification status
     // 3. Return appropriate success/failure response
-    
+
     return {
       success: true,
       message: 'Microdeposit verification submitted successfully',
@@ -432,11 +427,13 @@ export const confirmACHMicrodeposits = async (
 };
 
 export const isStripeError = (error: unknown): error is StripeServer.StripeRawError => {
-  return !!(error && 
-    typeof error === 'object' && 
-    error !== null && 
-    'type' in error && 
-    typeof (error as { type: unknown }).type === 'string');
+  return !!(
+    error &&
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    typeof (error as { type: unknown }).type === 'string'
+  );
 };
 
 // Error handling utility
@@ -458,9 +455,9 @@ export const handleStripeError = (error: unknown): string => {
         if (error.code === 'payment_method_verification_failure') {
           return 'Bank account verification failed. Please verify your microdeposit amounts.';
         }
-        return error.message || 'Invalid parameters were supplied to Stripe\'s API.';
+        return error.message || "Invalid parameters were supplied to Stripe's API.";
       case 'api_error':
-        return 'An error occurred internally with Stripe\'s API.';
+        return "An error occurred internally with Stripe's API.";
       case 'authentication_error':
         return 'You probably used an incorrect API key.';
       case 'idempotency_error':

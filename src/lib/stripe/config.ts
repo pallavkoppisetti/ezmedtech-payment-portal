@@ -371,7 +371,12 @@ export const confirmACHMicrodeposits = async (
 ): Promise<{ success: boolean; message: string }> => {
   try {
     // Future implementation will use the amounts parameter for verification
-    console.log('ACH microdeposit verification for payment method:', paymentMethodId, 'with amounts:', amounts);
+    console.log(
+      'ACH microdeposit verification for payment method:',
+      paymentMethodId,
+      'with amounts:',
+      amounts
+    );
     const stripe = await getStripeServer();
 
     // For ACH verification, we typically need to handle this through

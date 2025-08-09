@@ -21,7 +21,8 @@ A comprehensive healthcare SaaS payment portal built with Next.js 14, Stripe, an
 ### **💳 Complete Stripe Integration**
 
 - ✅ **Flexible Checkout**: Single session supporting both payment methods
-- ✅ **Session Verification**: Real-time validation with payment method detection
+- ✅ **Smart Session Verification**: Enhanced logic for card vs ACH payment validation
+- ✅ **ACH Payment Handling**: Proper verification for unpaid ACH subscriptions  
 - ✅ **Customer Portal**: Integrated billing management and payment updates
 - ✅ **Error Recovery**: Comprehensive error handling and user guidance
 - ✅ **API Health Monitoring**: Connection testing and status validation
@@ -231,10 +232,27 @@ src/
 
 ### **API Endpoints**
 
-- `POST /api/stripe/checkout` - Create subscription checkout sessions
-- `GET /api/stripe/verify-session` - Verify completed sessions
-- `POST /api/stripe/portal` - Generate customer portal URLs
+- `POST /api/stripe/checkout` - Create subscription checkout sessions (supports card + ACH)
+- `GET /api/stripe/verify-session` - **Enhanced verification** with ACH support
+- `POST /api/stripe/portal` - Generate customer portal URLs  
 - `GET /api/stripe/test-connection` - Test Stripe API connectivity
+
+#### **Enhanced Session Verification** 🎯
+
+The `/api/stripe/verify-session` endpoint includes **smart verification logic** for different payment methods:
+
+**Card Payments**: Traditional verification checking `payment_status === 'paid'`
+**ACH Payments**: Enhanced logic that verifies subscription creation success even when `payment_status === 'unpaid'`
+
+ACH payments are considered successful when:
+- Session status is `complete`
+- Subscription exists and status is `active`, `trialing`, or `past_due`
+- Payment method type is detected as `us_bank_account`
+
+**Response includes**:
+- `paymentMethodType`: Detected payment method (`card`, `us_bank_account`)
+- `verificationMethod`: Logic used (`card_payment`, `ach_subscription`)
+- Enhanced error messaging for debugging
 
 ## 🚀 **Deployment**
 

@@ -3,6 +3,19 @@ import { getPricingTierByStripePriceId } from '@/lib/stripe/products';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 
+/**
+ * Stripe Session Verification API Route
+ * 
+ * Verifies Stripe checkout sessions for both card and ACH payments.
+ * Handles different verification logic based on payment method type:
+ * 
+ * - Card payments: Verify payment_status === 'paid'
+ * - ACH payments: Verify subscription is created successfully (ignores unpaid status)
+ * 
+ * ACH payments start with 'unpaid' status but are considered successful when
+ * the subscription is created and active/trialing.
+ */
+
 // TypeScript interfaces for response data
 interface VerifySessionResponse {
   success: boolean;
@@ -22,6 +35,10 @@ interface VerifySessionResponse {
     type: string;
     object: string;
   } | null;
+  /** Payment method type detected for the session */
+  paymentMethodType?: string | null;
+  /** Session verification method used (card vs ACH) */
+  verificationMethod?: 'card_payment' | 'ach_subscription';
 }
 
 interface ErrorResponse {
@@ -68,16 +85,18 @@ export async function GET(
         'customer',
         'payment_method_options',
         'payment_intent.payment_method',
+        'setup_intent.payment_method',
       ],
     });
 
-    // Verify the session was completed
-    if (session.payment_status !== 'paid') {
+    // Verify the session was completed successfully
+    // For subscription mode, session.status === 'complete' indicates success
+    if (session.status !== 'complete') {
       return NextResponse.json(
         {
           success: false,
-          error: 'Payment not completed',
-          details: `Payment status: ${session.payment_status}`,
+          error: 'Session not completed',
+          details: `Session status: ${session.status}`,
         },
         { status: 400 }
       );
@@ -93,6 +112,75 @@ export async function GET(
         },
         { status: 400 }
       );
+    }
+
+    // Determine payment method type to apply appropriate verification logic
+    let paymentMethodType: string | null = null;
+    let paymentMethod = null;
+
+    // Check payment_intent for card payments
+    if (
+      session.payment_intent &&
+      typeof session.payment_intent === 'object' &&
+      session.payment_intent.payment_method
+    ) {
+      const pm = session.payment_intent.payment_method;
+      if (typeof pm === 'object' && pm !== null) {
+        paymentMethodType = pm.type;
+        paymentMethod = {
+          id: pm.id,
+          type: pm.type,
+          object: pm.object,
+        };
+      }
+    }
+
+    // Check setup_intent for ACH payments (us_bank_account)
+    if (
+      !paymentMethod &&
+      session.setup_intent &&
+      typeof session.setup_intent === 'object' &&
+      session.setup_intent.payment_method
+    ) {
+      const pm = session.setup_intent.payment_method;
+      if (typeof pm === 'object' && pm !== null) {
+        paymentMethodType = pm.type;
+        paymentMethod = {
+          id: pm.id,
+          type: pm.type,
+          object: pm.object,
+        };
+      }
+    }
+
+    // Apply verification logic based on payment method type
+    if (paymentMethodType === 'us_bank_account') {
+      // For ACH payments, verify subscription exists and is active/trialing
+      // ACH payments start with 'unpaid' status but subscription is still created successfully
+      if (!['active', 'trialing', 'past_due'].includes(subscription.status)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'ACH subscription not properly activated',
+            details: `Subscription status: ${subscription.status}`,
+          },
+          { status: 400 }
+        );
+      }
+      console.log('✅ ACH payment session verified - subscription created successfully');
+    } else {
+      // For card payments, check payment_status === 'paid'
+      if (session.payment_status !== 'paid') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Payment not completed',
+            details: `Payment status: ${session.payment_status}`,
+          },
+          { status: 400 }
+        );
+      }
+      console.log('✅ Card payment session verified - payment completed');
     }
 
     console.log('Subscription data:', {
@@ -145,24 +233,6 @@ export async function GET(
     const currency = price.currency;
     const interval = price.recurring?.interval || 'month';
 
-    // Extract payment method information
-    let paymentMethod = null;
-    if (
-      session.payment_intent &&
-      typeof session.payment_intent === 'object' &&
-      session.payment_intent.payment_method
-    ) {
-      const pm = session.payment_intent.payment_method;
-      // Ensure payment method is an object, not just a string ID
-      if (typeof pm === 'object' && pm !== null) {
-        paymentMethod = {
-          id: pm.id,
-          type: pm.type,
-          object: pm.object,
-        };
-      }
-    }
-
     return NextResponse.json(
       {
         success: true,
@@ -178,6 +248,8 @@ export async function GET(
           customerName,
         },
         paymentMethod,
+        paymentMethodType,
+        verificationMethod: paymentMethodType === 'us_bank_account' ? 'ach_subscription' : 'card_payment',
       },
       { status: 200 }
     );

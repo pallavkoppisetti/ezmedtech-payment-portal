@@ -6,12 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   AlertCircle,
   ArrowRight,
+  BanknoteIcon,
   Calendar,
   CheckCircle,
   Clock,
   CreditCard,
   Home,
   Loader2,
+  Shield,
+  Timer,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -38,6 +41,10 @@ interface VerifySessionResponse {
     type: string;
     object: string;
   } | null;
+  /** Payment method type detected for the session */
+  paymentMethodType?: string | null;
+  /** Session verification method used (card vs ACH) */
+  verificationMethod?: 'card_payment' | 'ach_subscription';
   error?: string;
   details?: string;
 }
@@ -54,6 +61,8 @@ function SuccessPageContent() {
     type: string;
     object: string;
   } | null>(null);
+  const [paymentMethodType, setPaymentMethodType] = useState<string | null>(null);
+  const [_verificationMethod, setVerificationMethod] = useState<'card_payment' | 'ach_subscription' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +80,8 @@ function SuccessPageContent() {
         if (data.success && data.subscription) {
           setSubscription(data.subscription);
           setPaymentMethod(data.paymentMethod || null);
+          setPaymentMethodType(data.paymentMethodType || null);
+          setVerificationMethod(data.verificationMethod || null);
         } else {
           // Handle specific error cases
           if (response.status === 404) {
@@ -119,15 +130,32 @@ function SuccessPageContent() {
   };
 
   const isACHPayment = () => {
-    return paymentMethod?.type === 'us_bank_account';
+    return paymentMethodType === 'us_bank_account' || paymentMethod?.type === 'us_bank_account';
   };
 
   const getACHSettlementDate = () => {
     // ACH payments typically settle 3-5 business days after processing
     const today = new Date();
     const settlementDate = new Date(today);
-    settlementDate.setDate(today.getDate() + 5); // Conservative 5 business days
+    
+    // Add 5 business days (conservative estimate)
+    let businessDaysAdded = 0;
+    while (businessDaysAdded < 5) {
+      settlementDate.setDate(settlementDate.getDate() + 1);
+      // Skip weekends (Saturday = 6, Sunday = 0)
+      if (settlementDate.getDay() !== 0 && settlementDate.getDay() !== 6) {
+        businessDaysAdded++;
+      }
+    }
+    
     return settlementDate;
+  };
+
+  const getMaskedBankAccount = () => {
+    if (!isACHPayment() || !paymentMethod?.id) return null;
+    // Show last 4 characters of payment method ID for reference
+    const lastFour = paymentMethod.id.slice(-4);
+    return `****${lastFour}`;
   };
 
   if (loading) {
@@ -191,30 +219,70 @@ function SuccessPageContent() {
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Welcome to EZMedTech!
+            {isACHPayment() ? 'ACH Payment Submitted!' : 'Welcome to EZMedTech!'}
           </h1>
 
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
             {isACHPayment()
-              ? 'Thank you for subscribing! Your ACH payment is being processed and your account setup is underway.'
+              ? 'Your bank account payment has been submitted successfully. Your subscription is active and ACH processing is underway.'
               : 'Thank you for subscribing! Your payment was successful and your account is ready.'}
           </p>
 
-          {/* ACH-specific notice */}
+          {/* Enhanced ACH-specific notice */}
           {isACHPayment() && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto mb-6">
-              <div className="flex items-start space-x-3">
-                <Clock className="w-6 h-6 text-blue-600 mt-1" />
-                <div className="text-left">
-                  <h3 className="font-semibold text-blue-900 mb-2">ACH Payment Processing</h3>
-                  <p className="text-blue-800 text-sm mb-2">
-                    Your bank account payment is being processed. ACH payments typically take 3-5
-                    business days to complete.
-                  </p>
-                  <p className="text-blue-800 text-sm">
-                    <strong>Expected Settlement:</strong>{' '}
-                    {formatDate(getACHSettlementDate().toISOString())}
-                  </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-3xl mx-auto mb-6">
+              <div className="flex items-start space-x-4">
+                <div className="bg-blue-100 rounded-full p-2">
+                  <BanknoteIcon className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+                    <Timer className="w-5 h-5 mr-2" />
+                    ACH Bank Account Payment Processing
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-white rounded-lg p-4 border border-blue-200">
+                      <div className="flex items-center mb-2">
+                        <Clock className="w-4 h-4 text-blue-600 mr-2" />
+                        <span className="font-medium text-blue-900">Processing Time</span>
+                      </div>
+                      <p className="text-blue-800 text-sm">
+                        ACH payments typically take <strong>3-5 business days</strong> to process and settle.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border border-blue-200">
+                      <div className="flex items-center mb-2">
+                        <Calendar className="w-4 h-4 text-blue-600 mr-2" />
+                        <span className="font-medium text-blue-900">Expected Settlement</span>
+                      </div>
+                      <p className="text-blue-800 text-sm">
+                        <strong>{formatDate(getACHSettlementDate().toISOString())}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  {getMaskedBankAccount() && (
+                    <div className="bg-white rounded-lg p-4 border border-blue-200 mb-4">
+                      <div className="flex items-center mb-2">
+                        <BanknoteIcon className="w-4 h-4 text-blue-600 mr-2" />
+                        <span className="font-medium text-blue-900">Bank Account</span>
+                      </div>
+                      <p className="text-blue-800 text-sm">
+                        Account ending in <strong>{getMaskedBankAccount()}</strong>
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center">
+                      <Shield className="w-4 h-4 text-green-600 mr-2" />
+                      <span className="font-medium text-green-800 text-sm">
+                        Your subscription is active immediately! You can access all features while payment processes.
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -256,12 +324,21 @@ function SuccessPageContent() {
                   <div className="md:col-span-2">
                     <p className="text-sm font-medium text-green-800 mb-1">Payment Method</p>
                     <div className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4 text-green-700" />
-                      <p className="text-lg font-semibold text-green-900">
-                        {paymentMethod.type === 'us_bank_account'
-                          ? 'Bank Account (ACH)'
-                          : 'Credit/Debit Card'}
-                      </p>
+                      {isACHPayment() ? (
+                        <BanknoteIcon className="w-4 h-4 text-green-700" />
+                      ) : (
+                        <CreditCard className="w-4 h-4 text-green-700" />
+                      )}
+                      <div>
+                        <p className="text-lg font-semibold text-green-900">
+                          {isACHPayment() ? 'Bank Account (ACH)' : 'Credit/Debit Card'}
+                        </p>
+                        {isACHPayment() && getMaskedBankAccount() && (
+                          <p className="text-sm text-green-700">
+                            Account ending in {getMaskedBankAccount()}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -274,18 +351,40 @@ function SuccessPageContent() {
           <Card className="p-6">
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
-                <Clock className="w-6 h-6 text-blue-600 mr-3" />
-                What happens next?
+                {isACHPayment() ? (
+                  <Timer className="w-6 h-6 text-blue-600 mr-3" />
+                ) : (
+                  <Clock className="w-6 h-6 text-blue-600 mr-3" />
+                )}
+                {isACHPayment() ? 'ACH Payment Timeline' : 'What happens next?'}
               </CardTitle>
-              <CardDescription>Your account setup process</CardDescription>
+              <CardDescription>
+                {isACHPayment() 
+                  ? 'Your ACH payment processing steps'
+                  : 'Your account setup process'
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start space-x-3">
-                <div
-                  className={`${
-                    isACHPayment() ? 'bg-blue-100' : 'bg-green-100'
-                  } rounded-full p-1 mt-1`}
-                >
+                <div className="bg-green-100 rounded-full p-1 mt-1">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    ✅ {isACHPayment() ? 'Subscription Activated' : 'Payment Confirmed'}
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    {isACHPayment()
+                      ? 'Your subscription is active and you have immediate access to all features'
+                      : 'Your subscription is now active and ready to use'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className={`${isACHPayment() ? 'bg-blue-100' : 'bg-green-100'} rounded-full p-1 mt-1`}>
                   {isACHPayment() ? (
                     <Clock className="w-4 h-4 text-blue-600" />
                   ) : (
@@ -294,41 +393,43 @@ function SuccessPageContent() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">
-                    {isACHPayment() ? '⏳ Payment Processing' : '✅ Payment Confirmed'}
+                    {isACHPayment() ? '⏳ Bank Processing' : '✅ Account Access'}
                   </p>
                   <p className="text-gray-600 text-sm">
                     {isACHPayment()
-                      ? 'Your ACH payment is being processed (3-5 business days)'
-                      : 'Your subscription is now active'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-100 rounded-full p-1 mt-1">
-                  <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Account Access</p>
-                  <p className="text-gray-600 text-sm">
-                    You can now access your dashboard and all features
+                      ? 'Your bank will process the ACH debit (typically 1-2 business days)'
+                      : 'You can now access your dashboard and all features'
+                    }
                   </p>
                 </div>
               </div>
 
               {isACHPayment() && (
-                <div className="flex items-start space-x-3">
-                  <div className="bg-yellow-100 rounded-full p-1 mt-1">
-                    <Calendar className="w-4 h-4 text-yellow-600" />
+                <>
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-yellow-100 rounded-full p-1 mt-1">
+                      <Timer className="w-4 h-4 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">⏳ Settlement Processing</p>
+                      <p className="text-gray-600 text-sm">
+                        Stripe processes the settlement (additional 2-3 business days)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Payment Settlement</p>
-                    <p className="text-gray-600 text-sm">
-                      Final confirmation after ACH clears (~
-                      {formatDate(getACHSettlementDate().toISOString())})
-                    </p>
+
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 rounded-full p-1 mt-1">
+                      <Calendar className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">✅ Payment Complete</p>
+                      <p className="text-gray-600 text-sm">
+                        Final settlement by {formatDate(getACHSettlementDate().toISOString())}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               <div className="flex items-start space-x-3">
@@ -337,7 +438,9 @@ function SuccessPageContent() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">Welcome Email</p>
-                  <p className="text-gray-600 text-sm">Check your inbox for setup instructions</p>
+                  <p className="text-gray-600 text-sm">
+                    Check your inbox for setup instructions and next steps
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -419,12 +522,59 @@ function SuccessPageContent() {
         </div>
 
         <div className="mt-12 text-center">
+          {isACHPayment() && (
+            <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center justify-center">
+                <BanknoteIcon className="w-5 h-5 mr-2" />
+                Important ACH Payment Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Immediate Access
+                  </h4>
+                  <p className="text-blue-800 text-sm">
+                    Your subscription is active immediately. You can access all features while your payment processes.
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Processing Time
+                  </h4>
+                  <p className="text-blue-800 text-sm">
+                    ACH payments are typically debited from your account within 1-2 business days and settle within 3-5 business days.
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Payment Failure
+                  </h4>
+                  <p className="text-blue-800 text-sm">
+                    If your ACH payment fails, we&apos;ll notify you immediately and provide alternative payment options.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Questions about your subscription?
             </h3>
             <p className="text-gray-600 mb-4">
-              Contact our billing team at{' '}
+              {isACHPayment() && (
+                <>
+                  For ACH payment questions, contact our billing team at{' '}
+                </>
+              )}
+              {!isACHPayment() && (
+                <>
+                  Contact our billing team at{' '}
+                </>
+              )}
               <a href="mailto:billing@ezmedtech.com" className="text-blue-600 hover:underline">
                 billing@ezmedtech.com
               </a>{' '}
@@ -434,7 +584,7 @@ function SuccessPageContent() {
               </a>
             </p>
             <p className="text-sm text-gray-500">
-              You can manage your subscription anytime from your dashboard.
+              You can manage your subscription{isACHPayment() ? ' and payment methods' : ''} anytime from your dashboard.
             </p>
           </div>
         </div>

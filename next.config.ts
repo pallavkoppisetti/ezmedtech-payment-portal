@@ -1,15 +1,16 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Production optimizations
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
-  
+
   // Enable experimental features for better performance
   experimental: {
     // Remove optimizeCss as it requires deprecated critters package
     optimizePackageImports: ['lucide-react', '@stripe/stripe-js'],
+    forceSwcTransforms: true,
   },
   // Ensure AWS SDK works properly in serverless environment
   serverExternalPackages: ['@aws-sdk/client-ssm'],
@@ -30,23 +31,24 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            value: 'nosniff',
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
+            value: '1; mode=block',
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://*.stripe.com")'
+            value:
+              'camera=(), microphone=(), geolocation=(), payment=(self "https://*.stripe.com")',
           },
           {
             key: 'Content-Security-Policy',
@@ -57,12 +59,12 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://*.stripe.com",
               "connect-src 'self' https://*.stripe.com https://api.stripe.com",
-              "frame-src https://*.stripe.com https://js.stripe.com",
+              'frame-src https://*.stripe.com https://js.stripe.com',
               "object-src 'none'",
-              "base-uri 'self'"
-            ].join('; ')
-          }
-        ]
+              "base-uri 'self'",
+            ].join('; '),
+          },
+        ],
       },
       // Cache static assets aggressively
       {
@@ -70,9 +72,9 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
       },
       // Don't cache API routes
       {
@@ -80,18 +82,18 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate'
+            value: 'no-cache, no-store, must-revalidate',
           },
           {
             key: 'Pragma',
-            value: 'no-cache'
+            value: 'no-cache',
           },
           {
             key: 'Expires',
-            value: '0'
-          }
-        ]
-      }
+            value: '0',
+          },
+        ],
+      },
     ];
   },
 
@@ -115,7 +117,7 @@ const nextConfig: NextConfig = {
         source: '/subscription',
         destination: '/pricing',
         permanent: false,
-      }
+      },
     ];
   },
 
@@ -131,7 +133,7 @@ const nextConfig: NextConfig = {
       {
         source: '/api/v1/:path*',
         destination: '/api/:path*',
-      }
+      },
     ];
   },
 
@@ -149,7 +151,7 @@ const nextConfig: NextConfig = {
             name: 'vendor',
             chunks: 'all',
             test: /node_modules/,
-            priority: 20
+            priority: 20,
           },
           common: {
             name: 'common',
@@ -157,9 +159,9 @@ const nextConfig: NextConfig = {
             chunks: 'all',
             priority: 10,
             reuseExistingChunk: true,
-            enforce: true
-          }
-        }
+            enforce: true,
+          },
+        },
       };
     }
 
@@ -194,7 +196,7 @@ const nextConfig: NextConfig = {
 
   // Output configuration for static export if needed
   trailingSlash: false,
-  
+
   // Environment variables validation
   env: {
     // These are made available to the client-side and server-side

@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
   experimental: {
     // Remove optimizeCss as it requires deprecated critters package
     optimizePackageImports: ['lucide-react', '@stripe/stripe-js'],
-    forceSwcTransforms: true,
   },
   // Ensure AWS SDK works properly in serverless environment
   serverExternalPackages: ['@aws-sdk/client-ssm'],

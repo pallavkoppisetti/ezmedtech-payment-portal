@@ -62,6 +62,7 @@ function SuccessPageContent() {
     object: string;
   } | null>(null);
   const [paymentMethodType, setPaymentMethodType] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_verificationMethod, setVerificationMethod] = useState<'card_payment' | 'ach_subscription' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -163,7 +164,7 @@ function SuccessPageContent() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <div className="flex justify-center mb-6">
+            <div className="flex jusUpdate the success page to show ACH-specific information when a bank account payment is detected. Add messaging about 3-5 day settlement times, show bank account information (masked), and provide clear next steps for ACH payments. Include proper settlement date calculations and ACH-specific confirmation messaging.tify-center mb-6">
               <div className="bg-blue-100 rounded-full p-4">
                 <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
               </div>

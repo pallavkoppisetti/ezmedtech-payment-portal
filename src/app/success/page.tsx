@@ -63,7 +63,9 @@ function SuccessPageContent() {
   } | null>(null);
   const [paymentMethodType, setPaymentMethodType] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_verificationMethod, setVerificationMethod] = useState<'card_payment' | 'ach_subscription' | null>(null);
+  const [_verificationMethod, setVerificationMethod] = useState<
+    'card_payment' | 'ach_subscription' | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,7 +140,7 @@ function SuccessPageContent() {
     // ACH payments typically settle 3-5 business days after processing
     const today = new Date();
     const settlementDate = new Date(today);
-    
+
     // Add 5 business days (conservative estimate)
     let businessDaysAdded = 0;
     while (businessDaysAdded < 5) {
@@ -148,7 +150,7 @@ function SuccessPageContent() {
         businessDaysAdded++;
       }
     }
-    
+
     return settlementDate;
   };
 
@@ -241,7 +243,7 @@ function SuccessPageContent() {
                     <Timer className="w-5 h-5 mr-2" />
                     ACH Bank Account Payment Processing
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="bg-white rounded-lg p-4 border border-blue-200">
                       <div className="flex items-center mb-2">
@@ -249,10 +251,11 @@ function SuccessPageContent() {
                         <span className="font-medium text-blue-900">Processing Time</span>
                       </div>
                       <p className="text-blue-800 text-sm">
-                        ACH payments typically take <strong>3-5 business days</strong> to process and settle.
+                        ACH payments typically take <strong>3-5 business days</strong> to process
+                        and settle.
                       </p>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg p-4 border border-blue-200">
                       <div className="flex items-center mb-2">
                         <Calendar className="w-4 h-4 text-blue-600 mr-2" />
@@ -280,7 +283,8 @@ function SuccessPageContent() {
                     <div className="flex items-center">
                       <Shield className="w-4 h-4 text-green-600 mr-2" />
                       <span className="font-medium text-green-800 text-sm">
-                        Your subscription is active immediately! You can access all features while payment processes.
+                        Your subscription is active immediately! You can access all features while
+                        payment processes.
                       </span>
                     </div>
                   </div>
@@ -360,10 +364,9 @@ function SuccessPageContent() {
                 {isACHPayment() ? 'ACH Payment Timeline' : 'What happens next?'}
               </CardTitle>
               <CardDescription>
-                {isACHPayment() 
+                {isACHPayment()
                   ? 'Your ACH payment processing steps'
-                  : 'Your account setup process'
-                }
+                  : 'Your account setup process'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -378,14 +381,17 @@ function SuccessPageContent() {
                   <p className="text-gray-600 text-sm">
                     {isACHPayment()
                       ? 'Your subscription is active and you have immediate access to all features'
-                      : 'Your subscription is now active and ready to use'
-                    }
+                      : 'Your subscription is now active and ready to use'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
-                <div className={`${isACHPayment() ? 'bg-blue-100' : 'bg-green-100'} rounded-full p-1 mt-1`}>
+                <div
+                  className={`${
+                    isACHPayment() ? 'bg-blue-100' : 'bg-green-100'
+                  } rounded-full p-1 mt-1`}
+                >
                   {isACHPayment() ? (
                     <Clock className="w-4 h-4 text-blue-600" />
                   ) : (
@@ -399,8 +405,7 @@ function SuccessPageContent() {
                   <p className="text-gray-600 text-sm">
                     {isACHPayment()
                       ? 'Your bank will process the ACH debit (typically 1-2 business days)'
-                      : 'You can now access your dashboard and all features'
-                    }
+                      : 'You can now access your dashboard and all features'}
                   </p>
                 </div>
               </div>
@@ -536,7 +541,8 @@ function SuccessPageContent() {
                     Immediate Access
                   </h4>
                   <p className="text-blue-800 text-sm">
-                    Your subscription is active immediately. You can access all features while your payment processes.
+                    Your subscription is active immediately. You can access all features while your
+                    payment processes.
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
@@ -545,7 +551,8 @@ function SuccessPageContent() {
                     Processing Time
                   </h4>
                   <p className="text-blue-800 text-sm">
-                    ACH payments are typically debited from your account within 1-2 business days and settle within 3-5 business days.
+                    ACH payments are typically debited from your account within 1-2 business days
+                    and settle within 3-5 business days.
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
@@ -554,28 +561,21 @@ function SuccessPageContent() {
                     Payment Failure
                   </h4>
                   <p className="text-blue-800 text-sm">
-                    If your ACH payment fails, we&apos;ll notify you immediately and provide alternative payment options.
+                    If your ACH payment fails, we&apos;ll notify you immediately and provide
+                    alternative payment options.
                   </p>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Questions about your subscription?
             </h3>
             <p className="text-gray-600 mb-4">
-              {isACHPayment() && (
-                <>
-                  For ACH payment questions, contact our billing team at{' '}
-                </>
-              )}
-              {!isACHPayment() && (
-                <>
-                  Contact our billing team at{' '}
-                </>
-              )}
+              {isACHPayment() && <>For ACH payment questions, contact our billing team at </>}
+              {!isACHPayment() && <>Contact our billing team at </>}
               <a href="mailto:billing@ezmedtech.com" className="text-blue-600 hover:underline">
                 billing@ezmedtech.com
               </a>{' '}
@@ -585,7 +585,8 @@ function SuccessPageContent() {
               </a>
             </p>
             <p className="text-sm text-gray-500">
-              You can manage your subscription{isACHPayment() ? ' and payment methods' : ''} anytime from your dashboard.
+              You can manage your subscription{isACHPayment() ? ' and payment methods' : ''} anytime
+              from your dashboard.
             </p>
           </div>
         </div>
